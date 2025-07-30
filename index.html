@@ -8,10 +8,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        /*
+         * التعديل: تم إضافة html هنا لضمان إخفاء الشريط الأفقي على مستوى الصفحة بالكامل
+         */
+        html, body {
+            overflow-x: hidden;
+        }
         body {
             font-family: 'Cairo', sans-serif;
             scroll-behavior: smooth;
-            overflow-x: hidden; /* Prevent horizontal scroll */
         }
         .chat-bubble-user { background-color: #3b82f6; color: white; }
         .chat-bubble-bot { background-color: #e5e7eb; color: #1f2937; }
