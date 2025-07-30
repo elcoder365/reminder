@@ -6,246 +6,174 @@
     <title>صديقي الدراسي - سيف الدين</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /*
-         * التعديل: تم إضافة html هنا لضمان إخفاء الشريط الأفقي على مستوى الصفحة بالكامل
-         */
         html, body {
             overflow-x: hidden;
+            background-color: #f1f5f9;
         }
         body {
             font-family: 'Cairo', sans-serif;
-            scroll-behavior: smooth;
         }
-        .chat-bubble-user { background-color: #3b82f6; color: white; }
-        .chat-bubble-bot { background-color: #e5e7eb; color: #1f2937; }
-        .chat-container { height: 350px; }
-        
-        .mode-button {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.2s ease-in-out;
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(100%); /* Start hidden off-screen to the right */
         }
-        .mode-button:hover {
-            background: rgba(255, 255, 255, 0.4);
+        #sidebar.open {
+            transform: translateX(0);
         }
-        .mode-button.active {
-            background: #16a34a;
+        #main-content-wrapper {
+            width: 100%;
+            transition: margin-right 0.3s ease-in-out;
+        }
+        @media (min-width: 768px) {
+            #main-content-wrapper.shifted {
+                margin-right: 256px; /* Push content by sidebar width on desktop */
+            }
+        }
+        #sidebar-overlay {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .sidebar-link {
+            transition: all 0.2s ease;
+            transform: scale(1);
+        }
+        .sidebar-link:hover {
+            background-color: #3b82f6;
             color: white;
             transform: scale(1.05);
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            border-color: transparent;
+        }
+        .sidebar-link.active {
+            background-color: #2563eb;
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39);
+        }
+        .sidebar-link svg { transition: all 0.2s ease; }
+        .sidebar-link:hover svg, .sidebar-link.active svg {
+            filter: brightness(0) invert(1);
+        }
+
+        .page-content { display: none; animation: fadeIn 0.5s ease-out; }
+        .page-content.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+
+        .chat-bubble-user { background-color: #3b82f6; color: white; }
+        .chat-bubble-bot { background-color: #e5e7eb; color: #1f2937; }
+        .chat-container { height: calc(100vh - 450px); min-height: 300px; }
         
-        .notification-banner {
-            display: none;
-            animation: fadeIn 0.5s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .mode-button.active {
+            background-color: #16a34a; /* Green */
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        .info-icon-group { position: relative; display: inline-flex; align-items: center; }
-        .info-tooltip {
-            visibility: hidden;
-            width: 180px; /* Reduced width */
-            background-color: #555;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 8px;
-            position: absolute;
-            z-index: 50;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .info-icon-group:hover .info-tooltip {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Modal Styles */
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 40;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
         }
-        .modal-overlay.visible {
-            opacity: 1;
-            visibility: visible;
-        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
         .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            width: 90%;
-            max-width: 500px;
-            transform: scale(0.95);
-            transition: transform 0.3s;
+            background: white; padding: 1.5rem; border-radius: 0.5rem;
+            width: 90%; max-width: 500px; transform: scale(0.95); transition: transform 0.3s;
         }
-        .modal-overlay.visible .modal-content {
-            transform: scale(1);
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        
+        .pomodoro-progress {
+            stroke-dasharray: 283;
+            stroke-dashoffset: 283;
+            transition: stroke-dashoffset 1s linear;
+        }
+        
+        .task-item input:checked + span {
+            text-decoration: line-through;
+            color: #6b7280;
         }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800">
 
-    <div id="notification-banner" class="notification-banner bg-yellow-300 text-yellow-800 p-3 text-center font-semibold sticky top-0 z-30"></div>
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 opacity-0 pointer-events-none md:hidden"></div>
 
-    <header class="bg-white shadow-md p-4 sticky top-0 z-20">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 id="welcome-message" class="text-xl md:text-2xl font-bold text-blue-600"></h1>
-            <div class="text-left">
-                <p id="age-display" class="text-sm text-slate-600"></p>
-                <p class="text-xs text-slate-500">الصف الثالث الإعدادي</p>
-            </div>
-        </div>
-    </header>
-
-    <main class="container mx-auto p-4 md:p-6">
-        <div class="text-center bg-blue-600 text-white p-4 rounded-lg shadow-lg mb-8">
-            <p id="motivational-quote" class="text-lg italic"></p>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <div class="lg:col-span-1 space-y-8">
-                <div class="bg-white p-6 rounded-lg shadow-lg">
-                    <div class="flex justify-between items-center mb-4 border-b-2 border-blue-500 pb-2">
-                        <h2 class="text-2xl font-bold text-gray-800">دروس اليوم</h2>
-                        <button id="show-tomorrow-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-full hover:bg-blue-600 transition">ماذا يوجد غداً؟</button>
-                    </div>
-                    <div id="today-lessons-container" class="space-y-3"></div>
+    <div class="relative min-h-screen md:flex">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed top-0 right-0 h-full bg-white text-slate-800 w-64 p-4 shadow-lg z-40">
+            <div class="flex flex-col h-full">
+                <div class="text-center border-b pb-4 mb-4">
+                    <h1 class="text-2xl font-bold text-blue-600">صديقي الدراسي</h1>
+                    <p class="text-sm text-slate-500">مرحباً, <span id="user-name-sidebar"></span>!</p>
                 </div>
-                
-                <div class="bg-white p-6 rounded-lg shadow-lg">
-                    <button id="toggle-schedule-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors">عرض الجدول الكامل</button>
-                    <div id="schedule-container" class="space-y-4 hidden mt-4"></div>
-                </div>
-
-                <div class="bg-white p-6 rounded-lg shadow-lg">
-                    <div class="flex justify-between items-center mb-4 border-b-2 border-teal-500 pb-2">
-                        <h2 class="text-2xl font-bold text-gray-800">متابعة الحضور</h2>
-                         <div class="info-icon-group">
-                            <span class="cursor-pointer bg-teal-100 text-teal-800 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">i</span>
-                            <span class="info-tooltip">سجّل حضورك أو غيابك، وتابع التزامك.</span>
-                        </div>
-                    </div>
-                    <div id="attendance-logger" class="space-y-3">
-                        <select id="lesson-select" class="w-full p-2 border rounded-md"></select>
-                        <div class="flex gap-2">
-                            <button data-status="attended" class="log-btn w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg">حضور</button>
-                            <button data-status="absent" class="log-btn w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">غياب</button>
-                        </div>
-                        <p id="log-status" class="text-center font-semibold text-sm h-5"></p>
-                    </div>
-                    <div id="attendance-stats" class="mt-6">
-                        <h3 class="font-bold mb-2">معدل الحضور</h3>
-                        <div style="height: 250px;">
-                           <canvas id="attendance-chart"></canvas>
-                        </div>
-                        <div id="chart-legend" class="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4"></div>
-                    </div>
-                     <div id="attendance-history" class="mt-6">
-                        <button id="show-history-btn" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-lg text-sm">عرض سجل الحضور التفصيلي</button>
-                        <div id="history-details" class="mt-2 text-sm space-y-2 hidden"></div>
-                    </div>
+                <nav class="flex-grow custom-scrollbar overflow-y-auto">
+                    <p class="px-3 text-xs font-semibold text-slate-400 uppercase mb-2">القائمة الرئيسية</p>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-schedule"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg><span>جدول المواعيد</span></a></li>
+                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-attendance-stats"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg><span>الحضور والإحصائيات</span></a></li>
+                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-ai"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg><span>المساعد الذكي</span></a></li>
+                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-files"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><span>ملفاتك الدراسية</span></a></li>
+                    </ul>
+                    <p class="px-3 text-xs font-semibold text-slate-400 uppercase mt-6 mb-2">أدوات الإنتاجية</p>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-pomodoro"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span>مؤقت بومودورو</span></a></li>
+                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-tasks"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg><span>قائمة المهام</span></a></li>
+                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-settings"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span>الإعدادات</span></a></li>
+                    </ul>
+                </nav>
+                <div class="border-t pt-4 text-center">
+                     <p id="age-display" class="text-sm text-slate-600"></p>
+                     <p class="text-xs text-slate-500">الصف الثالث الإعدادي</p>
                 </div>
             </div>
+        </aside>
 
-            <div class="lg:col-span-2 space-y-8">
-                <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col">
-                     <div class="flex justify-between items-center border-b-2 border-green-500 pb-2 mb-4">
-                        <h2 class="text-2xl font-bold text-gray-800">المساعد الذكي</h2>
-                         <div class="info-icon-group">
-                            <span class="cursor-pointer bg-green-100 text-green-800 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">i</span>
-                            <span class="info-tooltip">اختر المادة ثم ابدأ الدردشة مع المساعد الذكي.</span>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4 flex flex-wrap gap-2 justify-center p-2 rounded-lg bg-gray-100">
-                        <button class="mode-button px-4 py-2 rounded-lg font-semibold" data-mode="general">حديث عام</button>
-                        <button class="mode-button px-4 py-2 rounded-lg font-semibold" data-mode="arabic">لغة عربية</button>
-                        <button class="mode-button px-4 py-2 rounded-lg font-semibold" data-mode="english">لغة إنجليزية</button>
-                        <button class="mode-button px-4 py-2 rounded-lg font-semibold" data-mode="science">علوم</button>
-                        <button class="mode-button px-4 py-2 rounded-lg font-semibold" data-mode="studies">دراسات</button>
-                        <button class="mode-button px-4 py-2 rounded-lg font-semibold" data-mode="math">رياضيات</button>
-                        <button class="mode-button px-4 py-2 rounded-lg font-semibold" data-mode="islamic">دين</button>
-                    </div>
-
-                    <div id="chat-box" class="chat-container custom-scrollbar border rounded-lg p-4 overflow-y-auto bg-slate-50 flex-grow"></div>
-
-                    <div class="mt-4 flex gap-2">
-                        <input type="text" id="chat-input" class="flex-grow border rounded-lg p-2" placeholder="اسألني أي حاجة يا سيف...">
-                        <button id="send-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">أرسل</button>
-                    </div>
+        <!-- Main Content Wrapper -->
+        <div id="main-content-wrapper" class="flex-1 flex flex-col w-full overflow-hidden transition-all duration-300 ease-in-out">
+            <header class="bg-white shadow-md p-2 md:p-4 flex justify-between items-center z-20">
+                <div class="flex items-center gap-4">
+                     <button id="menu-button" class="text-slate-500 hover:text-blue-600 focus:outline-none p-2">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                    </button>
+                    <h1 id="welcome-message" class="hidden md:block text-xl md:text-2xl font-bold text-blue-600"></h1>
                 </div>
-                <div class="bg-white p-6 rounded-lg shadow-lg">
-                     <div class="flex justify-between items-center mb-4 border-b-2 border-indigo-500 pb-2">
-                        <h2 class="text-2xl font-bold text-gray-800">ملفاتك الدراسية</h2>
-                         <div class="info-icon-group">
-                            <span class="cursor-pointer bg-indigo-100 text-indigo-800 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">i</span>
-                            <span class="info-tooltip">ارفع ملخصاتك وواجباتك هنا للوصول إليها بسهولة.</span>
-                        </div>
-                    </div>
-                    <div class="text-center p-4 border-2 border-dashed rounded-lg">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Google Drive Logo" class="h-16 mx-auto mb-4">
-                        <p class="mb-4 text-slate-600">احتفظ بملفاتك منظمة وآمنة على Google Drive.</p>
-                        <button id="google-drive-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg">الذهاب إلى Google Drive</button>
-                        <p class="text-xs text-slate-400 mt-2">سيتم فتح Google Drive في نافذة جديدة.</p>
-                    </div>
+                <div class="text-center bg-blue-50 text-blue-800 p-2 rounded-lg shadow-inner">
+                    <p id="motivational-quote" class="text-sm md:text-base italic"></p>
                 </div>
-            </div>
+            </header>
+
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-2 sm:p-4 md:p-6">
+                <div id="page-schedule" class="page-content"></div>
+                <div id="page-attendance-stats" class="page-content"></div>
+                <div id="page-ai" class="page-content"></div>
+                <div id="page-files" class="page-content"></div>
+                <div id="page-pomodoro" class="page-content"></div>
+                <div id="page-tasks" class="page-content"></div>
+                <div id="page-settings" class="page-content"></div>
+            </main>
         </div>
-    </main>
+    </div>
 
     <!-- Modals -->
-    <div id="absence-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 class="text-xl font-bold mb-4">ما هو سبب الغياب؟</h3>
-            <textarea id="absence-reason" class="w-full p-2 border rounded-md mb-4" rows="3" placeholder="اختياري..."></textarea>
-            <div class="flex justify-end gap-2">
-                <button id="cancel-absence" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-md">إلغاء</button>
-                <button id="confirm-absence" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">تأكيد الغياب</button>
-            </div>
-        </div>
-    </div>
-    <div id="tomorrow-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 class="text-xl font-bold mb-4">دروس الغد</h3>
-            <div id="tomorrow-lessons-list" class="space-y-2"></div>
-            <div class="flex justify-end mt-4">
-                <button id="close-tomorrow-modal" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md">إغلاق</button>
-            </div>
-        </div>
-    </div>
-
+    <div id="confirmation-modal" class="modal-overlay"></div>
+    <div id="absence-modal" class="modal-overlay"></div>
+    <div id="tomorrow-modal" class="modal-overlay"></div>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, where, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, where, limit, writeBatch, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // --- CONFIGURATION ---
         const firebaseConfig = {
-            apiKey: "AIzaSyAdpM6wMWcMVCEFjhxFDlr2oIzD2U",
+            apiKey: "AIzaSyAdpM6wMWcMVCEFjhxFDlr2oIzD2U", // استبدل بمفتاحك
             authDomain: "my-lessons-tracker.firebaseapp.com",
             projectId: "my-lessons-tracker",
             storageBucket: "my-lessons-tracker.appspot.com",
@@ -253,22 +181,9 @@
             appId: "1:184479541651:web:2ec9f1189713b6a736066"
         };
         
-        const GEMINI_API_KEYS = [
-            "AIzaSyDF4JFltLJ0oWtnH-3oCNDOcfZ2CZg_5Jg",
-            "AIzaSyAorIf9nsNg0n8eiIcojSB2ETOsRoWLAvQ",
-            "AIzaSyCYXAlYtlXBi7d7VYA5oYuNtYUlod7Vmlc",
-            "AIzaSyCjWmqMIf5xhCBUrzAGWQmRVvRKgkElh-0",
-            "AIzaSyBtthAWwmjbWs6eJog-djPGfdAAJfARjqg",
-            "AIzaSyAY4vaeSqnk4dIVZZfIyRyyUOxR6OMhr3U",
-            "AIzaSyAs8PrTZbhR66kh_Rp1hWdzdlPnw1rr5SQ",
-            "AIzaSyD8utV5XMGo6jHI_8y0SsHftXH6TiCvBn4",
-            "AIzaSyBmmkUyXdSkb4wB3Hpo7cKeIYjg7yLOMDE",
-            "AIzaSyBIYgfJqTltDRq7BHe6f2ei160v82oGW3o",
-        ];
-        let currentApiKeyIndex = 0;
-
-        let attendanceChart = null;
-        const userData = { name: "سيف الدين", birthDate: "2011-03-19" };
+        const GEMINI_API_KEY = "AIzaSyCIdmKpoz_OLvkk94HfGjaV6x3Ldrj6Yts"; 
+        
+        const userData = { name: "سيف الدين", birthDate: "2011-03-19", id: "seif_eldeen_user" };
         const scheduleData = [
             { subject: "اللغة العربية", teacher: "أستاذ فيصل", days: ["الاثنين", "الخميس"], time: "16:00" },
             { subject: "اللغة الإنجليزية", teacher: "أستاذ مهدي", days: ["الأحد", "الأربعاء"], time: "16:15" },
@@ -277,77 +192,139 @@
             { subject: "الرياضيات", teacher: "أستاذ محمد", days: [], time: "" },
         ];
         const dayMapping = { "الأحد": 0, "الاثنين": 1, "الثلاثاء": 2, "الأربعاء": 3, "الخميس": 4, "الجمعة": 5, "السبت": 6 };
-        const subjectColors = {
-            "اللغة العربية": "#a16207", // Brown
-            "اللغة الإنجليزية": "#3b82f6",
-            "العلوم": "#22c55e",
-            "الدراسات الاجتماعية": "#f97316",
-            "الرياضيات": "#8b5cf6",
-        };
+        const subjectColors = { "اللغة العربية": "#a16207", "اللغة الإنجليزية": "#3b82f6", "العلوم": "#16a34a", "الدراسات الاجتماعية": "#f97316", "الرياضيات": "#8b5cf6" };
 
+        // --- GLOBAL STATE ---
+        let attendanceChart = null;
+
+        // --- INITIALIZATION ---
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
         document.addEventListener('DOMContentLoaded', () => {
+            injectPageHTML();
+            setupNavigation();
             setupUserInfo();
-            setupSchedule();
+            setupSchedulePage();
+            setupAttendanceStatsPage();
             initializeChat();
-            initializeAttendance();
-            document.getElementById('google-drive-btn').addEventListener('click', () => {
-                window.open('https://drive.google.com', '_blank');
-            });
+            initializePomodoro();
+            initializeTodoList();
+            initializeSettings();
+
+            document.getElementById('google-drive-btn').addEventListener('click', () => window.open('https://drive.google.com', '_blank'));
         });
 
+        // --- PAGE HTML INJECTION ---
+        function injectPageHTML() {
+            document.getElementById('page-schedule').innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8"><div class="bg-white p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-blue-500 pb-2"><h2 class="text-xl md:text-2xl font-bold text-gray-800">دروس اليوم</h2><button id="show-tomorrow-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-full hover:bg-blue-600 transition">ماذا يوجد غداً؟</button></div><div id="today-lessons-container" class="space-y-3"></div></div><div class="bg-white p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-gray-500 pb-2"><h2 class="text-xl md:text-2xl font-bold text-gray-800">الجدول الكامل</h2><button id="toggle-full-schedule-btn" class="text-sm bg-gray-200 text-gray-800 py-1 px-3 rounded-full hover:bg-gray-300 transition">عرض</button></div><div id="full-schedule-container" class="hidden space-y-4 mt-4"></div></div></div>`;
+            document.getElementById('page-attendance-stats').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg"><div class="grid grid-cols-1 xl:grid-cols-3 gap-8"><div class="xl:col-span-1"><h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4 border-b-2 border-teal-500 pb-2">تسجيل الحضور</h2><div id="attendance-logger" class="space-y-3 mt-4"><label for="lesson-select" class="font-semibold">اختر الدرس:</label><select id="lesson-select" class="w-full p-2 border rounded-md bg-gray-50"></select><div class="flex gap-2"><button data-status="attended" class="log-btn w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg">حضور</button><button data-status="absent" class="log-btn w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">غياب</button></div><p id="log-status" class="text-center font-semibold text-sm h-5"></p></div></div><div class="xl:col-span-2"><h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4 border-b-2 border-purple-500 pb-2">إحصائيات</h2><div style="height: 300px;" class="mt-4"><canvas id="attendance-chart"></canvas></div><div id="chart-legend" class="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 border-t pt-4"></div></div></div><div class="mt-8 border-t pt-6"><button id="toggle-history-btn" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-lg transition-colors">عرض سجل الحضور التفصيلي</button><div id="attendance-history-container" class="hidden mt-4"><h3 class="text-lg font-bold text-gray-800 mb-2">سجل الحصص</h3><div id="attendance-history-list" class="space-y-2 max-h-96 custom-scrollbar overflow-y-auto p-2 bg-slate-50 rounded-lg"></div></div></div></div>`;
+            document.getElementById('page-ai').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg flex flex-col h-full"><div class="flex justify-between items-center border-b-2 border-green-500 pb-2 mb-4"><h2 class="text-xl md:text-2xl font-bold text-gray-800">المساعد الذكي</h2><button id="clear-chat-btn" class="text-sm bg-red-500 text-white py-1 px-3 rounded-full hover:bg-red-600 transition">مسح المحادثة</button></div><div class="mb-4 flex flex-wrap gap-2 justify-center p-2 rounded-lg bg-gray-100"><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="general">عام</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="arabic">عربية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="english">إنجليزية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="science">علوم</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="studies">دراسات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="math">رياضيات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="islamic">دين</button></div><div id="chat-box" class="chat-container custom-scrollbar border rounded-lg p-4 overflow-y-auto bg-slate-50 flex-grow"></div><div class="mt-4 flex gap-2"><input type="text" id="chat-input" class="flex-grow border rounded-lg p-2" placeholder="اسألني أي حاجة يا سيف..."><button id="send-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">أرسل</button></div></div>`;
+            document.getElementById('page-files').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-indigo-500 pb-2"><h2 class="text-xl md:text-2xl font-bold text-gray-800">ملفاتك الدراسية</h2></div><div class="text-center p-4 md:p-8 border-2 border-dashed rounded-lg"><img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Google Drive Logo" class="h-16 md:h-20 mx-auto mb-4"><p class="mb-4 text-slate-600 text-base md:text-lg">احتفظ بملفاتك منظمة وآمنة على Google Drive.</p><p class="mb-6 text-slate-500 text-sm md:text-base">يمكنك رفع ملخصاتك، واجباتك، ومذكراتك للوصول إليها من أي مكان.</p><button id="google-drive-btn" class="w-full max-w-xs mx-auto bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">الذهاب إلى Google Drive</button><p class="text-xs text-slate-400 mt-3">سيتم فتح Google Drive في نافذة جديدة.</p></div></div>`;
+            document.getElementById('page-pomodoro').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg max-w-md mx-auto text-center"><h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-red-500 pb-2">مؤقت بومودورو</h2><div class="relative w-48 h-48 mx-auto mb-6"><svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-slate-200" stroke-width="7" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle id="pomodoro-progress-circle" class="pomodoro-progress text-red-500" stroke-width="7" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%;" /></svg><div id="pomodoro-time" class="absolute inset-0 flex items-center justify-center text-4xl font-bold">25:00</div></div><div id="pomodoro-status" class="mb-6 font-semibold text-lg">وقت التركيز</div><div class="flex justify-center gap-4"><button id="pomodoro-start" class="bg-red-500 text-white px-8 py-2 rounded-lg font-bold">ابدأ</button><button id="pomodoro-pause" class="bg-yellow-500 text-white px-8 py-2 rounded-lg font-bold hidden">إيقاف مؤقت</button><button id="pomodoro-reset" class="bg-gray-500 text-white px-8 py-2 rounded-lg font-bold">إعادة ضبط</button></div></div>`;
+            document.getElementById('page-tasks').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold text-gray-800 mb-4 border-b-2 border-yellow-500 pb-2">قائمة المهام اليومية</h2><form id="task-form" class="flex gap-2 mb-4"><input type="text" id="task-input" class="flex-grow border rounded-lg p-2" placeholder="أضف مهمة جديدة..." required><button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg">أضف</button></form><div id="task-list" class="space-y-2"></div></div>`;
+            document.getElementById('page-settings').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold text-gray-800 mb-4 border-b-2 border-gray-500 pb-2">الإعدادات</h2><div class="space-y-4"><h3 class="text-lg font-semibold">منطقة الخطر</h3><div class="bg-red-50 border border-red-200 p-4 rounded-lg"><p class="font-semibold">حذف جميع بيانات الحضور</p><p class="text-sm text-slate-600 mb-2">سيؤدي هذا إلى حذف جميع سجلات الحضور والغياب نهائيًا. لا يمكن التراجع عن هذا الإجراء.</p><button id="delete-attendance-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">حذف كل السجلات</button></div></div></div>`;
+        }
+
+        // --- NAVIGATION & UI ---
+        function setupNavigation() {
+            const sidebar = document.getElementById('sidebar');
+            const mainWrapper = document.getElementById('main-content-wrapper');
+            const menuButton = document.getElementById('menu-button');
+            const overlay = document.getElementById('sidebar-overlay');
+            const sidebarLinks = document.querySelectorAll('.sidebar-link');
+            const pages = document.querySelectorAll('.page-content');
+
+            const toggleSidebar = () => {
+                const isOpen = sidebar.classList.toggle('open');
+                overlay.classList.toggle('opacity-0', !isOpen);
+                overlay.classList.toggle('pointer-events-none', !isOpen);
+                mainWrapper.classList.toggle('shifted', isOpen && window.innerWidth >= 768);
+            };
+
+            const showPage = (pageId) => {
+                pages.forEach(p => p.classList.toggle('active', p.id === pageId));
+                sidebarLinks.forEach(l => l.classList.toggle('active', l.dataset.page === pageId));
+                if (pageId === 'page-attendance-stats') {
+                    updateAttendanceChart();
+                    // displayAttendanceHistory is now called by a button
+                }
+                if (window.innerWidth < 768 && sidebar.classList.contains('open')) {
+                    toggleSidebar();
+                }
+            };
+
+            menuButton.addEventListener('click', toggleSidebar);
+            overlay.addEventListener('click', toggleSidebar);
+            sidebarLinks.forEach(link => link.addEventListener('click', (e) => {
+                e.preventDefault();
+                showPage(link.dataset.page);
+            }));
+
+            showPage('page-schedule'); // Default page
+        }
+        
         function setupUserInfo() {
             const motivationalQuotes = ["النجاح هو مجموع الجهود الصغيرة التي تتكرر يوماً بعد يوم.", "لا تخف من التقدم ببطء، بل خف من الوقوف ساكناً.", "أنت أقوى مما تتخيل، وأذكى مما تعتقد."];
             const age = calculateAge(userData.birthDate);
             document.getElementById('welcome-message').textContent = `أهلاً بك يا ${userData.name}!`;
+            document.getElementById('user-name-sidebar').textContent = userData.name;
             document.getElementById('age-display').textContent = `عمرك: ${age} سنة`;
             document.getElementById('motivational-quote').textContent = `"${motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]}"`;
         }
-        function setupSchedule() {
-            displayFullSchedule();
-            updateTodayLessonsStatus();
-            setInterval(updateTodayLessonsStatus, 60 * 1000);
+
+        // --- FEATURES ---
+
+        function setupSchedulePage() {
+            const scheduleContainer = document.getElementById('full-schedule-container');
+            const toggleBtn = document.getElementById('toggle-full-schedule-btn');
             
-            document.getElementById('toggle-schedule-btn').addEventListener('click', () => {
-                const container = document.getElementById('schedule-container');
-                container.classList.toggle('hidden');
-                container.previousElementSibling.textContent = container.classList.contains('hidden') ? 'عرض الجدول الكامل' : 'إخفاء الجدول الكامل';
+            displayFullSchedule(scheduleContainer);
+            updateTodayLessonsStatus();
+            setInterval(updateTodayLessonsStatus, 60000);
+
+            toggleBtn.addEventListener('click', () => {
+                const isHidden = scheduleContainer.classList.toggle('hidden');
+                toggleBtn.textContent = isHidden ? 'عرض' : 'إخفاء';
             });
 
             document.getElementById('show-tomorrow-btn').addEventListener('click', displayTomorrowLessons);
-            document.getElementById('close-tomorrow-modal').addEventListener('click', () => {
-                document.getElementById('tomorrow-modal').classList.remove('visible');
-            });
+            document.getElementById('tomorrow-modal').innerHTML = `<div class="modal-content"><h3 class="text-xl font-bold mb-4">دروس الغد</h3><div id="tomorrow-lessons-list" class="space-y-2"></div><div class="flex justify-end mt-4"><button id="close-tomorrow-modal" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md">إغلاق</button></div></div>`;
+            document.getElementById('close-tomorrow-modal').addEventListener('click', () => document.getElementById('tomorrow-modal').classList.remove('visible'));
         }
 
-        async function initializeAttendance() {
+        function setupAttendanceStatsPage() {
             const select = document.getElementById('lesson-select');
             scheduleData.forEach(lesson => {
                 if (lesson.time) select.innerHTML += `<option value="${lesson.subject}">${lesson.subject}</option>`;
             });
             document.querySelectorAll('.log-btn').forEach(btn => btn.addEventListener('click', handleLogAction));
-            document.getElementById('show-history-btn').addEventListener('click', toggleAttendanceHistory);
-            await updateAttendanceChart();
+            document.getElementById('absence-modal').innerHTML = `<div class="modal-content"><h3 class="text-xl font-bold mb-4">ما هو سبب الغياب؟</h3><textarea id="absence-reason" class="w-full p-2 border rounded-md mb-4" rows="3" placeholder="اختياري..."></textarea><div class="flex justify-end gap-2"><button id="cancel-absence" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-md">إلغاء</button><button id="confirm-absence" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">تأكيد الغياب</button></div></div>`;
+            document.getElementById('cancel-absence').addEventListener('click', () => document.getElementById('absence-modal').classList.remove('visible'));
+
+            const toggleBtn = document.getElementById('toggle-history-btn');
+            const historyContainer = document.getElementById('attendance-history-container');
+            toggleBtn.addEventListener('click', () => {
+                const isHidden = historyContainer.classList.toggle('hidden');
+                toggleBtn.textContent = isHidden ? 'عرض سجل الحضور التفصيلي' : 'إخفاء سجل الحضور التفصيلي';
+                if (!isHidden) {
+                    displayAttendanceHistory();
+                }
+            });
         }
 
         async function handleLogAction(event) {
             const status = event.target.dataset.status;
             const subject = document.getElementById('lesson-select').value;
+            const modal = document.getElementById('absence-modal');
             
             if (status === 'attended') {
                 logAttendance(subject, 'attended');
-            } else { // absent
-                const modal = document.getElementById('absence-modal');
+            } else {
                 modal.classList.add('visible');
                 document.getElementById('confirm-absence').onclick = () => {
                     const reason = document.getElementById('absence-reason').value;
                     logAttendance(subject, 'absent', reason);
-                    modal.classList.remove('visible');
-                    document.getElementById('absence-reason').value = '';
-                };
-                document.getElementById('cancel-absence').onclick = () => {
                     modal.classList.remove('visible');
                     document.getElementById('absence-reason').value = '';
                 };
@@ -358,106 +335,44 @@
             const logStatus = document.getElementById('log-status');
             logStatus.textContent = 'جاري الحفظ...';
             try {
-                await addDoc(collection(db, "attendance"), { subject, status, reason, timestamp: new Date(), userId: "seif" });
-                logStatus.textContent = `تم تسجيل ${status === 'attended' ? 'حضور' : 'غياب'} درس ${subject} بنجاح.`;
+                const lessonInfo = scheduleData.find(l => l.subject === subject);
+                const docRef = collection(db, "users", userData.id, "attendance");
+                await addDoc(docRef, { 
+                    subject, 
+                    status, 
+                    reason, 
+                    lessonTime: lessonInfo ? lessonInfo.time : 'N/A',
+                    timestamp: new Date() 
+                });
+                logStatus.textContent = `تم تسجيل ${status === 'attended' ? 'حضور' : 'غياب'} بنجاح.`;
                 logStatus.style.color = 'green';
-                await updateAttendanceChart();
-                await updateTodayLessonsStatus();
-                if (!document.getElementById('history-details').classList.contains('hidden')) {
-                    await displayAttendanceHistory();
+                setTimeout(() => logStatus.textContent = '', 3000);
+                updateAttendanceChart();
+                
+                const historyContainer = document.getElementById('attendance-history-container');
+                if (historyContainer && !historyContainer.classList.contains('hidden')) {
+                    displayAttendanceHistory();
                 }
+
                 if (status === 'absent') {
                     triggerAbsenceFollowUpAI(subject, reason);
                 }
+
             } catch (e) {
                 console.error("Error adding document: ", e);
                 logStatus.textContent = 'حدث خطأ أثناء الحفظ.';
                 logStatus.style.color = 'red';
             }
         }
-
-        async function updateAttendanceChart() {
-            const querySnapshot = await getDocs(collection(db, "attendance"));
-            const stats = {};
-            const labels = [];
-            scheduleData.filter(l => l.time).forEach(l => {
-                labels.push(l.subject);
-                stats[l.subject] = { attended: 0, absent: 0 };
-            });
-            querySnapshot.forEach(doc => {
-                const data = doc.data();
-                if (stats[data.subject]) {
-                    if (data.status === 'attended') stats[data.subject].attended++;
-                    else if (data.status === 'absent') stats[data.subject].absent++;
-                }
-            });
-            const ctx = document.getElementById('attendance-chart').getContext('2d');
-            if (attendanceChart) attendanceChart.destroy();
-            attendanceChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'حضور',
-                        data: labels.map(l => stats[l].attended),
-                        backgroundColor: labels.map(l => subjectColors[l] || '#22c55e'),
-                        borderColor: '#16a34a',
-                        borderWidth: 2,
-                        borderRadius: 8,
-                        borderSkipped: false,
-                    }, {
-                        label: 'غياب',
-                        data: labels.map(l => stats[l].absent),
-                        backgroundColor: labels.map(l => subjectColors[l] || '#22c55e'),
-                        borderColor: '#dc2626',
-                        borderWidth: 2,
-                        borderRadius: 8,
-                        borderSkipped: false,
-                    }]
-                },
-                options: {
-                    plugins: { legend: { display: false } },
-                    scales: { x: { display: false }, y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    barPercentage: 0.4,
-                    categoryPercentage: 0.7
-                }
-            });
-            generateCustomLegend(labels);
-        }
         
-        function generateCustomLegend(labels) {
-            const legendContainer = document.getElementById('chart-legend');
-            legendContainer.innerHTML = '';
-            labels.forEach(label => {
-                const color = subjectColors[label] || '#a1a1aa';
-                const legendItem = document.createElement('div');
-                legendItem.className = 'flex items-center gap-2';
-                legendItem.innerHTML = `
-                    <span class="w-4 h-4 rounded-full" style="background-color: ${color};"></span>
-                    <span class="font-bold text-lg text-gray-700">${label}</span>
-                `;
-                legendContainer.appendChild(legendItem);
-            });
-        }
-        
-        async function toggleAttendanceHistory() {
-            const historyContainer = document.getElementById('history-details');
-            const btn = document.getElementById('show-history-btn');
-            const isHidden = historyContainer.classList.contains('hidden');
-            if (isHidden) await displayAttendanceHistory();
-            historyContainer.classList.toggle('hidden');
-            btn.textContent = isHidden ? 'إخفاء السجل التفصيلي' : 'عرض السجل التفصيلي';
-        }
-
         async function displayAttendanceHistory() {
-            const historyContainer = document.getElementById('history-details');
-            historyContainer.innerHTML = 'جاري تحميل السجل...';
-            const q = query(collection(db, "attendance"), orderBy("timestamp", "desc"));
+            const historyContainer = document.getElementById('attendance-history-list');
+            if (!historyContainer) return;
+            historyContainer.innerHTML = '<p class="text-center p-4">جاري تحميل السجل...</p>';
+            const q = query(collection(db, "users", userData.id, "attendance"), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
             if (querySnapshot.empty) {
-                historyContainer.innerHTML = '<p>لا يوجد سجلات حضور حتى الآن.</p>';
+                historyContainer.innerHTML = '<p class="text-center p-4 text-slate-500">لا يوجد سجلات بعد.</p>';
                 return;
             }
             let html = '<ul class="space-y-2">';
@@ -467,97 +382,387 @@
                 const statusText = data.status === 'attended' ? 'حضور' : 'غياب';
                 const statusColor = data.status === 'attended' ? 'text-green-600' : 'text-red-600';
                 const reasonHtml = data.reason ? `<p class="text-xs text-gray-500 mt-1">السبب: ${data.reason}</p>` : '';
-                html += `<li class="flex justify-between items-start p-2 bg-slate-50 rounded-md">
-                            <div>
-                                <span class="font-semibold">${data.subject}</span> - <span class="font-bold ${statusColor}">${statusText}</span>
-                                <span class="text-xs text-slate-500 block">وقت التسجيل: ${timestamp.toLocaleString('ar-EG')}</span>
-                                ${reasonHtml}
-                            </div>
-                            <button data-id="${doc.id}" class="delete-log-btn text-xs text-red-500 hover:text-red-700 flex-shrink-0">حذف</button>
-                         </li>`;
+                html += `<li class="flex justify-between items-start p-2 bg-white rounded-md border"><div><span class="font-semibold">${data.subject}</span> - <span class="font-bold ${statusColor}">${statusText}</span><span class="text-xs text-slate-500 block">${timestamp.toLocaleString('ar-EG')}</span>${reasonHtml}</div><button data-id="${doc.id}" class="delete-log-btn text-red-400 hover:text-red-600 font-bold text-xl p-1">&times;</button></li>`;
             });
-            historyContainer.innerHTML = html;
-            document.querySelectorAll('.delete-log-btn').forEach(btn => btn.addEventListener('click', deleteAttendanceLog));
+            historyContainer.innerHTML = html + '</ul>';
+            document.querySelectorAll('.delete-log-btn').forEach(btn => btn.addEventListener('click', deleteSingleAttendanceLog));
         }
 
-        async function deleteAttendanceLog(event) {
+        async function deleteSingleAttendanceLog(event) {
             const docId = event.target.dataset.id;
-            if (confirm('هل أنت متأكد من حذف هذا السجل؟')) {
+            showConfirmationModal('هل أنت متأكد من حذف هذا السجل؟', async () => {
                 try {
-                    await deleteDoc(doc(db, "attendance", docId));
-                    await updateAttendanceChart();
-                    await updateTodayLessonsStatus();
-                    await displayAttendanceHistory();
-                } catch (e) {
-                    console.error("Error deleting document: ", e);
-                    alert('فشل حذف السجل.');
-                }
-            }
+                    await deleteDoc(doc(db, "users", userData.id, "attendance", docId));
+                    updateAttendanceChart();
+                    displayAttendanceHistory();
+                } catch (e) { console.error("Error deleting document: ", e); }
+            });
         }
 
-        // --- AI Chatbot ---
-        let chatMode = 'general', chatHistory = [];
+        async function updateAttendanceChart() {
+            const attendanceRef = collection(db, "users", userData.id, "attendance");
+            const querySnapshot = await getDocs(attendanceRef);
+            const stats = {};
+            const labels = scheduleData.filter(l => l.time).map(l => l.subject);
+            labels.forEach(l => stats[l] = { attended: 0, absent: 0 });
+
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                if (stats[data.subject]) {
+                    if (data.status === 'attended') stats[data.subject].attended++;
+                    else if (data.status === 'absent') stats[data.subject].absent++;
+                }
+            });
+
+            const ctx = document.getElementById('attendance-chart').getContext('2d');
+            if (attendanceChart) attendanceChart.destroy();
+            attendanceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'حضور',
+                            data: labels.map(l => stats[l].attended),
+                            backgroundColor: labels.map(l => subjectColors[l] || '#cccccc'),
+                            borderColor: '#22c55e',
+                            borderWidth: 2,
+                            borderRadius: 3,
+                        },
+                        {
+                            label: 'غياب',
+                            data: labels.map(l => stats[l].absent),
+                            backgroundColor: labels.map(l => subjectColors[l] || '#cccccc'),
+                            borderColor: '#ef4444',
+                            borderWidth: 2,
+                            borderRadius: 3,
+                        }
+                    ]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                }
+            });
+            generateCustomChartLegend(labels);
+        }
+
+        function generateCustomChartLegend(labels) {
+            const legendContainer = document.getElementById('chart-legend');
+            legendContainer.innerHTML = '';
+            labels.forEach(label => {
+                const color = subjectColors[label] || '#a1a1aa';
+                const legendItem = document.createElement('div');
+                legendItem.className = 'flex items-center gap-2';
+                legendItem.innerHTML = `<span class="w-4 h-4 rounded-full" style="background-color: ${color};"></span><span class="font-semibold text-sm text-gray-700">${label}</span>`;
+                legendContainer.appendChild(legendItem);
+            });
+        }
         
+        async function updateTodayLessonsStatus() {
+            const now = new Date();
+            const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
+            const todayLessons = scheduleData.filter(l => l.days.includes(todayDayName) && l.time).map(l => ({ ...l, date: new Date(now.toDateString() + ' ' + l.time) })).sort((a, b) => a.date - b.date);
+
+            const container = document.getElementById('today-lessons-container');
+            if (todayLessons.length === 0) {
+                container.innerHTML = `<p class="text-slate-500 text-center p-4">لا توجد دروس اليوم. يوم راحة!</p>`;
+                return;
+            }
+
+            const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(); endOfDay.setHours(23, 59, 59, 999);
+            const q = query(collection(db, "users", userData.id, "attendance"), where("timestamp", ">=", startOfDay), where("timestamp", "<=", endOfDay));
+            const querySnapshot = await getDocs(q);
+            const attendanceRecords = new Map(querySnapshot.docs.map(d => [d.data().subject, d.data()]));
+
+            let nextLessonFound = false;
+            container.innerHTML = todayLessons.map(lesson => {
+                const timeStr = lesson.date.toLocaleTimeString('ar-EG', { hour: 'numeric', minute: 'numeric' });
+                let statusHtml = '', statusClass = 'bg-gray-100';
+                const record = attendanceRecords.get(lesson.subject);
+
+                if (record) {
+                    statusHtml = `<p class="font-bold ${record.status === 'attended' ? 'text-green-600' : 'text-red-600'}">${record.status === 'attended' ? 'تم الحضور' : 'غياب'}</p>`;
+                } else if (lesson.date < now) {
+                    statusClass = 'bg-yellow-100 text-yellow-700';
+                    statusHtml = `<p class="text-sm font-semibold">فات ولم يسجل</p>`;
+                } else if (!nextLessonFound) {
+                    statusClass = 'bg-blue-100 text-blue-800 ring-2 ring-blue-500';
+                    statusHtml = `<p class="font-bold">الدرس القادم</p>`;
+                    nextLessonFound = true;
+                } else {
+                    statusHtml = `<p class="text-sm text-gray-500">قادم</p>`;
+                }
+                
+                return `<div class="p-3 rounded-lg ${statusClass}"><div class="flex justify-between items-center"><div><h3 class="font-semibold">${lesson.subject}</h3><p class="text-sm">مع ${lesson.teacher} - الساعة ${timeStr}</p></div><div class="text-left">${statusHtml}</div></div></div>`;
+            }).join('');
+        }
+        
+        function displayTomorrowLessons() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowDayName = Object.keys(dayMapping).find(key => dayMapping[key] === tomorrow.getDay());
+            const tomorrowLessons = scheduleData.filter(l => l.days.includes(tomorrowDayName) && l.time).sort((a, b) => a.time.localeCompare(b.time));
+            const listContainer = document.getElementById('tomorrow-lessons-list');
+            if (tomorrowLessons.length === 0) {
+                listContainer.innerHTML = `<p class="text-slate-500">لا توجد دروس غداً. يوم راحة!</p>`;
+            } else {
+                listContainer.innerHTML = tomorrowLessons.map(lesson => `<div class="p-3 rounded-lg bg-slate-100"><h4 class="font-semibold">${lesson.subject}</h4><p class="text-sm">مع ${lesson.teacher} - الساعة ${new Date('1970-01-01T' + lesson.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'})}</p></div>`).join('');
+            }
+            document.getElementById('tomorrow-modal').classList.add('visible');
+        }
+        
+        function displayFullSchedule(container) {
+            container.innerHTML = scheduleData.map(lesson => `<div class="bg-slate-50 p-3 rounded-lg border border-slate-200"><h3 class="font-semibold text-blue-700">${lesson.subject}</h3><p class="text-sm text-slate-600">المواعيد: ${lesson.days.join(' و ') || 'غير محدد'} - ${lesson.time ? new Date('1970-01-01T' + lesson.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'}) : 'غير محدد'}</p><p class="text-xs text-slate-500">المعلم: ${lesson.teacher}</p></div>`).join('');
+        }
+
+        function initializePomodoro() {
+            let interval;
+            let workTime = 1500, shortBreakTime = 300, longBreakTime = 900;
+            let timeLeft = workTime;
+            let totalTime = workTime;
+            let mode = 'work';
+            let isPaused = true;
+            const timeDisplay = document.getElementById('pomodoro-time');
+            const progressCircle = document.getElementById('pomodoro-progress-circle');
+            const statusDisplay = document.getElementById('pomodoro-status');
+            const startBtn = document.getElementById('pomodoro-start');
+            const pauseBtn = document.getElementById('pomodoro-pause');
+            const resetBtn = document.getElementById('pomodoro-reset');
+
+            const updateDisplay = () => {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                const progress = (totalTime - timeLeft) / totalTime;
+                progressCircle.style.strokeDashoffset = 283 * (1 - progress);
+            };
+            
+            const resetTimer = () => {
+                clearInterval(interval);
+                isPaused = true;
+                startBtn.classList.remove('hidden');
+                pauseBtn.classList.add('hidden');
+                timeLeft = workTime;
+                totalTime = workTime;
+                mode = 'work';
+                statusDisplay.textContent = 'وقت التركيز';
+                progressCircle.setAttribute('class', 'pomodoro-progress text-red-500');
+                updateDisplay();
+            };
+
+            const switchMode = (newMode) => {
+                mode = newMode;
+                const modes = {
+                    work: { time: workTime, text: 'وقت التركيز', color: 'text-red-500' },
+                    short: { time: shortBreakTime, text: 'استراحة قصيرة', color: 'text-green-500' },
+                    long: { time: longBreakTime, text: 'استراحة طويلة', color: 'text-blue-500' }
+                };
+                resetTimer(); // Reset first
+                timeLeft = modes[mode].time; // Then set new time
+                totalTime = modes[mode].time;
+                statusDisplay.textContent = modes[mode].text;
+                progressCircle.setAttribute('class', `pomodoro-progress ${modes[mode].color}`);
+                updateDisplay();
+            };
+
+            const startTimer = () => {
+                isPaused = false;
+                startBtn.classList.add('hidden');
+                pauseBtn.classList.remove('hidden');
+                interval = setInterval(() => {
+                    timeLeft--;
+                    updateDisplay();
+                    if (timeLeft < 0) {
+                        clearInterval(interval);
+                        new Tone.Synth().toDestination().triggerAttackRelease("C5", "0.5");
+                        switchMode(mode === 'work' ? 'short' : 'work');
+                    }
+                }, 1000);
+            };
+            
+            const pauseTimer = () => {
+                isPaused = true;
+                clearInterval(interval);
+                startBtn.classList.remove('hidden');
+                pauseBtn.classList.add('hidden');
+            };
+
+            startBtn.addEventListener('click', startTimer);
+            pauseBtn.addEventListener('click', pauseTimer);
+            resetBtn.addEventListener('click', resetTimer);
+            
+            updateDisplay();
+        }
+
+        async function initializeTodoList() {
+            const taskForm = document.getElementById('task-form');
+            const taskInput = document.getElementById('task-input');
+            const taskList = document.getElementById('task-list');
+            const tasksRef = collection(db, "users", userData.id, "tasks");
+
+            const renderTasks = async () => {
+                taskList.innerHTML = '';
+                const q = query(tasksRef, orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    taskList.innerHTML = '<p class="text-slate-500 text-center p-4">لا توجد مهام حالياً. أضف مهمة جديدة لتبدأ!</p>';
+                } else {
+                    querySnapshot.forEach(doc => {
+                        const task = doc.data();
+                        const taskEl = document.createElement('div');
+                        taskEl.className = `task-item flex items-center justify-between p-3 rounded-lg ${task.completed ? 'bg-green-50' : 'bg-slate-50'}`;
+                        taskEl.innerHTML = `<label class="flex items-center gap-3"><input type="checkbox" data-id="${doc.id}" class="form-checkbox h-5 w-5 text-yellow-500 rounded" ${task.completed ? 'checked' : ''}><span class="text-slate-800">${task.text}</span></label><button data-id="${doc.id}" class="delete-task-btn text-red-400 hover:text-red-600 font-bold text-xl">&times;</button>`;
+                        taskList.appendChild(taskEl);
+                    });
+                }
+            };
+
+            taskForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = taskInput.value.trim();
+                if (text) {
+                    await addDoc(tasksRef, { text, completed: false, createdAt: new Date() });
+                    taskInput.value = '';
+                    renderTasks();
+                }
+            });
+
+            taskList.addEventListener('click', async (e) => {
+                const target = e.target;
+                if (target.matches('.delete-task-btn')) {
+                    await deleteDoc(doc(tasksRef, target.dataset.id));
+                    renderTasks();
+                }
+                if (target.matches('input[type="checkbox"]')) {
+                    await updateDoc(doc(tasksRef, target.dataset.id), { completed: target.checked });
+                    renderTasks();
+                }
+            });
+
+            await renderTasks();
+        }
+        
+        function initializeSettings() {
+            document.getElementById('delete-attendance-btn').addEventListener('click', async () => {
+                showConfirmationModal('هل أنت متأكد من حذف جميع بيانات الحضور؟ هذا الإجراء لا يمكن التراجع عنه.', async () => {
+                    const attendanceRef = collection(db, "users", userData.id, "attendance");
+                    const querySnapshot = await getDocs(attendanceRef);
+                    const batch = writeBatch(db);
+                    querySnapshot.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                    await updateAttendanceChart();
+                    await displayAttendanceHistory();
+                    alert('تم حذف جميع بيانات الحضور بنجاح.');
+                });
+            });
+        }
+
         function initializeChat() {
             const chatInput = document.getElementById('chat-input');
             const sendButton = document.getElementById('send-button');
             const modeButtons = document.querySelectorAll('.mode-button');
+            const clearChatBtn = document.getElementById('clear-chat-btn');
             
             modeButtons.forEach(button => button.addEventListener('click', () => setActiveMode(button.dataset.mode)));
-            
             sendButton.addEventListener('click', sendMessage);
             chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+            
+            clearChatBtn.addEventListener('click', () => {
+                showConfirmationModal('هل أنت متأكد من مسح سجل المحادثة؟', async () => {
+                    const chatRef = collection(db, "users", userData.id, "chatHistory");
+                    const querySnapshot = await getDocs(chatRef);
+                    const batch = writeBatch(db);
+                    querySnapshot.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                    document.getElementById('chat-box').innerHTML = '';
+                    setActiveMode(document.querySelector('.mode-button.active').dataset.mode || 'general');
+                });
+            });
             
             setActiveMode('general');
         }
         
-        async function setActiveMode(mode) {
-            chatMode = mode;
-            chatHistory = [];
-            document.querySelectorAll('.mode-button').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
-            
-            showLoadingIndicator();
-            const modeName = document.querySelector(`.mode-button[data-mode="${mode}"]`).textContent;
-            const welcomePrompt = `رحب بسيف ترحيباً ودوداً ومختصراً لأنكم الآن في وضع "${modeName}".`;
+        async function loadChatHistory() {
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = '';
+            const q = query(collection(db, "users", userData.id, "chatHistory"), orderBy("timestamp", "asc"));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(doc => {
+                const msg = doc.data();
+                addMessageToChat(msg.text, msg.role);
+            });
+        }
+        
+        async function saveMessageToHistory(role, text) {
             try {
-                const welcomeResponse = await getGeminiResponse(welcomePrompt, mode, [], true); 
-                removeLoadingIndicator();
-                typeMessage(welcomeResponse, 'bot');
-            } catch (error) {
-                handleAiError(error);
+                const chatRef = collection(db, "users", userData.id, "chatHistory");
+                await addDoc(chatRef, { role, text, timestamp: new Date() });
+            } catch (e) {
+                console.error("Error saving chat message:", e);
+            }
+        }
+        
+        async function setActiveMode(mode) {
+            document.querySelectorAll('.mode-button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            await loadChatHistory();
+            
+            if (document.getElementById('chat-box').children.length === 0) {
+                showLoadingIndicator();
+                const modeName = document.querySelector(`.mode-button[data-mode="${mode}"]`).textContent;
+                const welcomePrompt = `رحب بسيف ترحيباً ودوداً ومختصراً لأنكم الآن في وضع "${modeName}".`;
+                try {
+                    const welcomeResponse = await getGeminiResponse(welcomePrompt, mode, [], true); 
+                    removeLoadingIndicator();
+                    typeMessage(welcomeResponse, 'bot');
+                    await saveMessageToHistory('model', welcomeResponse);
+                } catch (error) {
+                    handleAiError(error);
+                }
             }
         }
 
         async function sendMessage() {
             const userMessage = document.getElementById('chat-input').value.trim();
             if (!userMessage) return;
+            const currentMode = document.querySelector('.mode-button.active').dataset.mode || 'general';
+            
             addMessageToChat(userMessage, 'user');
+            await saveMessageToHistory('user', userMessage);
             document.getElementById('chat-input').value = '';
             showLoadingIndicator();
+            
+            const q = query(collection(db, "users", userData.id, "chatHistory"), orderBy("timestamp", "desc"), limit(10));
+            const querySnapshot = await getDocs(q);
+            const history = querySnapshot.docs.map(doc => doc.data()).reverse();
+
             try {
-                const aiResponse = await getGeminiResponse(userMessage, chatMode, chatHistory);
+                const aiResponse = await getGeminiResponse(userMessage, currentMode, history);
                 removeLoadingIndicator();
                 typeMessage(aiResponse, 'bot');
-                chatHistory.push({ role: "user", parts: [{ text: userMessage }] });
-                chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
-                if (chatHistory.length > 8) chatHistory = chatHistory.slice(-8);
+                await saveMessageToHistory('model', aiResponse);
             } catch (error) {
                 handleAiError(error);
             }
         }
-
+        
         async function triggerAbsenceFollowUpAI(subject, reason) {
+            document.querySelector('.sidebar-link[data-page="page-ai"]').click();
             showLoadingIndicator();
-            let followUpPrompt;
-            if (reason) {
-                followUpPrompt = `لقد سجل سيف للتو غيابه عن درس ${subject} بسبب "${reason}". ابدأ محادثة داعمة معه، اسأله عن حاله وقدم له نصيحة مناسبة.`;
-            } else {
-                followUpPrompt = `لقد سجل سيف للتو غيابه عن درس ${subject} بدون ذكر سبب. اسأله بلطف عن سبب غيابه وما إذا كان كل شيء على ما يرام.`;
-            }
+            let prompt = reason ? `لقد سجلت للتو غيابي عن درس ${subject} بسبب "${reason}". ابدأ محادثة داعمة معي.` : `لقد سجلت للتو غيابي عن درس ${subject}. اسألني بلطف عن سبب غيابي.`;
             try {
-                const followUpResponse = await getGeminiResponse(followUpPrompt, 'general', [], true);
+                const response = await getGeminiResponse(prompt, 'general', [], true);
                 removeLoadingIndicator();
-                typeMessage(followUpResponse, 'bot');
+                typeMessage(response, 'bot');
+                await saveMessageToHistory('model', response);
             } catch(error) {
                 handleAiError(error);
             }
@@ -567,108 +772,151 @@
             console.error("AI Error:", error);
             removeLoadingIndicator();
             let friendlyMessage = 'عذراً، حدث خطأ أثناء التواصل مع المساعد الذكي.';
-            const errorMessage = error.message.toLowerCase();
-
-            if (errorMessage.includes('api key not valid')) {
-                friendlyMessage = 'عذراً يا سيف، يبدو أن مفتاح الـ API الذي نستخدمه غير صالح. الرجاء التأكد من صحته في الكود.';
-            } else if (errorMessage.includes('permission denied') || errorMessage.includes('api is not enabled')) {
-                friendlyMessage = 'عذراً يا سيف، يبدو أن خدمة الذكاء الاصطناعي (Generative Language API) ليست مفعلة في مشروعك على Google Cloud. الرجاء تفعيلها والمحاولة مرة أخرى.';
-            } else if (errorMessage.includes('quota')) {
-                friendlyMessage = 'عذراً يا سيف، يبدو أننا وصلنا إلى الحد الأقصى للاستخدام المجاني للمساعد الذكي لهذا اليوم. الرجاء المحاولة مرة أخرى لاحقاً.';
-            } else if (errorMessage.includes('overloaded')) {
-                friendlyMessage = 'عذراً يا سيف، الخادم مشغول جداً الآن. لقد حاولت عدة مرات، الرجاء المحاولة مرة أخرى بعد قليل.';
-            } else {
-                friendlyMessage = `حدث خطأ غير متوقع: ${error.message}`;
+            if (error.message === "ALL_KEYS_QUOTA_EXCEEDED") {
+                friendlyMessage = 'عذراً يا سيف، لقد وصلنا للحد الأقصى من استخدام المساعد الذكي اليوم. يمكنك المحاولة مرة أخرى لاحقاً.';
+            } else if (error.message.toLowerCase().includes("overloaded")) {
+                friendlyMessage = 'عذراً يا سيف، الخادم مشغول جداً الآن. لقد حاولنا عدة مرات، الرجاء المحاولة مرة أخرى بعد قليل.';
+            } else if (error.message.includes("quota")) {
+                friendlyMessage = 'عذراً يا سيف، لقد وصلنا للحد الأقصى من استخدام المساعد الذكي اليوم. حاول مرة أخرى لاحقاً.';
             }
-            
             addMessageToChat(friendlyMessage, 'bot');
         }
 
-        async function getSystemPrompt(mode) {
-            const age = calculateAge(userData.birthDate);
-            const scheduleString = scheduleData.map(l => `${l.subject} (${l.days.join(',')}) الساعة ${l.time} مع ${l.teacher}`).join('; ');
-            
-            const q = query(collection(db, "attendance"), orderBy("timestamp", "desc"), limit(5));
-            const querySnapshot = await getDocs(q);
-            let attendanceSummary = "لا توجد سجلات حضور بعد.";
-            if (!querySnapshot.empty) {
-                attendanceSummary = "آخر 5 تسجيلات:\n" + querySnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    const status = data.status === 'attended' ? 'حضور' : 'غياب';
-                    const reason = data.reason ? ` (السبب: ${data.reason})` : '';
-                    return `- ${data.subject}: ${status} بتاريخ ${data.timestamp.toDate().toLocaleDateString('ar-EG')}${reason}`;
-                }).join('\n');
+        async function fetchWithBackoff(url, options, maxRetries = 3) {
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                const response = await fetch(url, options);
+                if (response.status === 429 || response.status === 503 || response.status === 500) {
+                    if (i === maxRetries - 1) return response; 
+                    console.warn(`API is busy. Retrying in ${delay / 1000}s... (Attempt ${i + 1})`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                } else {
+                    return response;
+                }
             }
-
-            const prompts = {
-                general: `أنت مساعد ذكي وصديق للطالب سيف الدين. عمره ${age} سنة وهو في الصف الثالث الإعدادي. هذا جدوله: ${scheduleString}. وهذا هو ملخص حضوره الأخير: ${attendanceSummary}. تفاعل معه كأخ وصديق، وكن على دراية كاملة بكل هذه المعلومات.`,
-                arabic: `أنت معلم لغة عربية خبير تشرح منهج الصف الثالث الإعدادي المصري للطالب سيف. استخدم معلوماته الأساسية (عمره، جدوله، حضوره) لتخصيص الشرح.`,
-                english: `أنت معلم لغة إنجليزية خبير تشرح منهج الصف الثالث الإعدادي المصري للطالب سيف. أجب بالعربي مع شرح المصطلحات الإنجليزية. استخدم معلوماته الأساسية لتخصيص الشرح.`,
-                science: `أنت معلم علوم خبير تبسط منهج الصف الثالث الإعدادي المصري للطالب سيف. استخدم معلوماته الأساسية لتخصيص الشرح.`,
-                studies: `أنت معلم دراسات اجتماعية خبير تشرح منهج الصف الثالث الإعدادي المصري للطالب سيف. استخدم معلوماته الأساسية لتخصيص الشرح.`,
-                math: `أنت معلم رياضيات خبير تشرح منهج الصف الثالث الإعدادي المصري للطالب سيف. استخدم معلوماته الأساسية لتخصيص الشرح.`,
-                islamic: `أنت معلم دين إسلامي تجيب على أسئلة الطالب سيف (${age} سنة) بشكل مبسط وحكيم. استخدم معلوماته الأساسية لتخصيص الشرح.`
-            };
-            return prompts[mode];
+            return new Response(null, { status: 504, statusText: "Gateway Timeout after multiple retries." });
         }
 
         async function getGeminiResponse(prompt, mode, history, isSystemMessage = false) {
-            const systemPrompt = await getSystemPrompt(mode);
-            const contents = isSystemMessage ? [{ role: 'user', parts: [{ text: prompt }] }] : [...history, { role: 'user', parts: [{ text: prompt }] }];
+             const systemPrompt = await getSystemPrompt(mode);
+             const contents = isSystemMessage ? [
+                ...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] })),
+                { role: 'user', parts: [{ text: prompt }] }
+             ] : history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] }));
             
             const payload = { 
                 contents: contents,
                 system_instruction: { parts: [{ text: systemPrompt }] }
             };
 
-            let response;
-            const apiKey = GEMINI_API_KEYS[currentApiKeyIndex];
-            response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
+            const apiKey = GEMINI_API_KEY;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const options = {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            });
+            };
+            
+            const response = await fetchWithBackoff(url, options);
 
             if (!response.ok) {
-                const err = await response.json();
-                const errorMessage = err.error.message.toLowerCase();
-                if ((errorMessage.includes('quota') || errorMessage.includes('exceeded')) && currentApiKeyIndex < GEMINI_API_KEYS.length - 1) {
-                    currentApiKeyIndex++;
-                    console.log(`Switching to API Key index ${currentApiKeyIndex}`);
-                    return getGeminiResponse(prompt, mode, history, isSystemMessage); // Retry with the next key
-                }
-                throw new Error(err.error.message || 'An unknown error occurred.');
+                const err = await response.json().catch(() => ({ error: { message: response.statusText } }));
+                const errorMessage = err?.error?.message?.toLowerCase() || '';
+                throw new Error(err?.error?.message || 'An unknown error occurred.');
             }
             const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
+            
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (text && text.trim() !== "") {
+                return text;
+            } else {
+                console.warn("Received an empty or malformed response from the AI:", data);
+                return "عفواً، لم أتمكن من إنشاء رد. قد يكون السبب هو أن الطلب يخالف سياسات السلامة. حاول مرة أخرى بسؤال مختلف.";
+            }
+        }
+        
+        async function getSystemPrompt(mode) {
+            const age = calculateAge(userData.birthDate);
+            const scheduleString = scheduleData.map(l => `${l.subject} (${l.days.join(',')}) الساعة ${l.time} مع ${l.teacher}`).join('; ');
+            
+            // Fetch all attendance data for a complete summary
+            const attendanceRef = collection(db, "users", userData.id, "attendance");
+            const attendanceSnapshot = await getDocs(attendanceRef);
+            let attendanceSummary = "لا توجد سجلات حضور بعد.";
+            if (!attendanceSnapshot.empty) {
+                const stats = {};
+                scheduleData.forEach(l => {
+                    if(l.time) stats[l.subject] = { attended: 0, absent: 0 };
+                });
+                attendanceSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (stats[data.subject]) {
+                        if (data.status === 'attended') stats[data.subject].attended++;
+                        else if (data.status === 'absent') stats[data.subject].absent++;
+                    }
+                });
+                attendanceSummary = "ملخص الحضور والغياب:\n" + Object.entries(stats).map(([subject, counts]) => 
+                    `- ${subject}: ${counts.attended} حضور, ${counts.absent} غياب.`
+                ).join('\n');
+            }
+
+            // Fetch all tasks
+            const tasksRef = collection(db, "users", userData.id, "tasks");
+            const tasksSnapshot = await getDocs(query(tasksRef, orderBy("createdAt")));
+            let tasksSummary = "لا توجد مهام حالياً.";
+            if(!tasksSnapshot.empty) {
+                tasksSummary = "قائمة المهام:\n" + tasksSnapshot.docs.map(doc => {
+                    const task = doc.data();
+                    return `- ${task.text} (الحالة: ${task.completed ? 'مكتملة' : 'غير مكتملة'})`;
+                }).join('\n');
+            }
+
+            const basePrompt = `أنت مساعد ذكي وصديق للطالب سيف الدين. عمره ${age} سنة. تفاعل معه كصديق. كن ودوداً ومختصراً. لديك الآن الوصول إلى جميع معلوماته في التطبيق:\n\n1. جدوله الدراسي:\n${scheduleString}\n\n2. ${attendanceSummary}\n\n3. ${tasksSummary}\n\nاستخدم هذه المعلومات لتكون إجاباتك دقيقة وشخصية.`;
+
+            const prompts = {
+                general: basePrompt,
+                arabic: `${basePrompt}\n\nأنت الآن في وضع "معلم لغة عربية". اشرح منهج الصف الثالث الإعدادي المصري لسيف.`,
+                english: `${basePrompt}\n\nأنت الآن في وضع "معلم لغة إنجليزية". أجب بالعربي مع شرح المصطلحات الإنجليزية.`,
+                science: `${basePrompt}\n\nأنت الآن في وضع "معلم علوم". بسّط منهج الصف الثالث الإعدادي المصري لسيف.`,
+                studies: `${basePrompt}\n\nأنت الآن في وضع "معلم دراسات اجتماعية". اشرح منهج الصف الثالث الإعدادي المصري لسيف.`,
+                math: `${basePrompt}\n\nأنت الآن في وضع "معلم رياضيات". اشرح منهج الصف الثالث الإعدادي المصري لسيف.`,
+                islamic: `${basePrompt}\n\nأنت الآن في وضع "معلم دين إسلامي". أجب على أسئلة سيف بشكل مبسط وحكيم.`
+            };
+            return prompts[mode] || prompts['general'];
         }
 
         function addMessageToChat(message, sender) {
             const chatBox = document.getElementById('chat-box');
             const bubble = document.createElement('div');
             bubble.className = `w-fit max-w-lg rounded-xl px-4 py-2 mb-2 ${sender === 'user' ? 'chat-bubble-user self-end' : 'chat-bubble-bot self-start'}`;
-            bubble.textContent = message;
             const messageContainer = document.createElement('div');
             messageContainer.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
             messageContainer.appendChild(bubble);
+            bubble.textContent = message;
             chatBox.appendChild(messageContainer);
             chatBox.scrollTop = chatBox.scrollHeight;
             return bubble;
         }
         
         function typeMessage(message, sender) {
+            if (!message || typeof message !== 'string') {
+                console.error("typeMessage received invalid message:", message);
+                message = "عفواً، حدث خطأ ما.";
+            }
             const words = message.split(' ');
-            const bubble = addMessageToChat('', sender); // Create an empty bubble
+            const bubble = addMessageToChat('', sender);
             let i = 0;
             const interval = setInterval(() => {
-                if (i < words.length) {
+                if (bubble && i < words.length) {
                     bubble.textContent += (i > 0 ? ' ' : '') + words[i];
                     document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
                     i++;
                 } else {
                     clearInterval(interval);
                 }
-            }, 80); // Adjust typing speed here (milliseconds)
+            }, 50);
         }
 
         function showLoadingIndicator() {
@@ -696,111 +944,19 @@
             if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
             return age;
         }
-        
-        async function updateTodayLessonsStatus() {
-            const now = new Date();
-            const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
-            const todayLessons = scheduleData
-                .filter(l => l.days.includes(todayDayName) && l.time)
-                .map(l => {
-                    const [hour, minute] = l.time.split(':');
-                    const date = new Date();
-                    date.setHours(hour, minute, 0, 0);
-                    return { ...l, date };
-                })
-                .sort((a, b) => a.date - b.date);
 
-            const container = document.getElementById('today-lessons-container');
-            if (todayLessons.length === 0) {
-                container.innerHTML = `<p class="text-slate-500">لا توجد دروس اليوم. يوم راحة!</p>`;
-                return;
-            }
-
-            const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date();
-            endOfDay.setHours(23, 59, 59, 999);
-
-            const q = query(collection(db, "attendance"), where("timestamp", ">=", startOfDay), where("timestamp", "<=", endOfDay));
-            const querySnapshot = await getDocs(q);
-            const attendanceRecords = new Map();
-            querySnapshot.forEach(doc => {
-                const data = doc.data();
-                attendanceRecords.set(data.subject, data);
-            });
-
-            let nextLessonFound = false;
-            container.innerHTML = todayLessons.map(lesson => {
-                const timeStr = lesson.date.toLocaleTimeString('ar-EG', { hour: 'numeric', minute: 'numeric' });
-                let statusHtml = '';
-                let statusClass = 'bg-gray-100';
-
-                const record = attendanceRecords.get(lesson.subject);
-
-                if (record) {
-                    const statusText = record.status === 'attended' ? 'تم الحضور' : 'غياب';
-                    const statusColor = record.status === 'attended' ? 'text-green-600' : 'text-red-600';
-                    const reasonHtml = record.reason ? `<p class="text-xs text-gray-500 mt-1">السبب: ${record.reason}</p>` : '';
-                    statusHtml = `<div class="text-left"><p class="font-bold ${statusColor}">${statusText}</p>${reasonHtml}</div>`;
-                } else if (lesson.date < now) {
-                    statusClass = 'bg-yellow-100 text-yellow-700';
-                    statusHtml = `<p class="text-sm font-semibold">انتهى ولم يسجل</p>`;
-                } else if (!nextLessonFound) {
-                    statusClass = 'bg-blue-100 text-blue-800 ring-2 ring-blue-500';
-                    statusHtml = `<p class="font-bold">الدرس القادم</p>`;
-                    nextLessonFound = true;
-                } else {
-                    statusHtml = `<p class="text-sm text-gray-500">قادم</p>`;
-                }
-                
-                return `<div class="p-3 rounded-lg ${statusClass}">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h3 class="font-semibold">${lesson.subject}</h3>
-                                    <p class="text-sm">مع ${lesson.teacher} - الساعة ${timeStr}</p>
-                                </div>
-                                ${statusHtml}
-                            </div>
-                        </div>`;
-            }).join('');
+        function showConfirmationModal(message, onConfirm) {
+            const modal = document.getElementById('confirmation-modal');
+            modal.innerHTML = `<div class="modal-content"><p class="text-lg font-semibold mb-4">${message}</p><div class="flex justify-end gap-2"><button id="confirm-cancel" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-md">إلغاء</button><button id="confirm-ok" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">تأكيد</button></div></div>`;
+            modal.classList.add('visible');
+            document.getElementById('confirm-ok').onclick = () => {
+                onConfirm();
+                modal.classList.remove('visible');
+            };
+            document.getElementById('confirm-cancel').onclick = () => {
+                modal.classList.remove('visible');
+            };
         }
-        
-        function displayTomorrowLessons() {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowDayName = Object.keys(dayMapping).find(key => dayMapping[key] === tomorrow.getDay());
-            const tomorrowLessons = scheduleData
-                .filter(l => l.days.includes(tomorrowDayName) && l.time)
-                .sort((a, b) => a.time.localeCompare(b.time));
-
-            const listContainer = document.getElementById('tomorrow-lessons-list');
-            if (tomorrowLessons.length === 0) {
-                listContainer.innerHTML = `<p class="text-slate-500">لا توجد دروس غداً. يوم راحة!</p>`;
-            } else {
-                listContainer.innerHTML = tomorrowLessons.map(lesson => {
-                    const timeStr = new Date(`1970-01-01T${lesson.time}`).toLocaleTimeString('ar-EG', {hour: 'numeric', minute: 'numeric'});
-                    return `<div class="p-3 rounded-lg bg-slate-100">
-                                <h4 class="font-semibold">${lesson.subject}</h4>
-                                <p class="text-sm">مع ${lesson.teacher} - الساعة ${timeStr}</p>
-                            </div>`;
-                }).join('');
-            }
-            document.getElementById('tomorrow-modal').classList.add('visible');
-        }
-        
-        function displayFullSchedule() {
-            const container = document.getElementById('schedule-container');
-            container.innerHTML = '';
-            scheduleData.forEach(lesson => {
-                const timeStr = lesson.time ? new Date(`1970-01-01T${lesson.time}`).toLocaleTimeString('ar-EG', {hour: 'numeric', minute: 'numeric'}) : "غير محدد";
-                container.innerHTML += `
-                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                        <h3 class="font-semibold text-blue-700">${lesson.subject}</h3>
-                        <p class="text-sm text-slate-600">المواعيد: ${lesson.days.join(' و ')} - ${timeStr}</p>
-                    </div>`;
-            });
-        }
-
     </script>
 </body>
 </html>
