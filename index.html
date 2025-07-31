@@ -3,177 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>صديقي الدراسي - سيف الدين</title>
+    <title>صديقي الدراسي</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        html, body {
-            overflow-x: hidden;
-            background-color: #f1f5f9;
+        :root {
+            --bg-primary: #f1f5f9; --bg-secondary: #ffffff; --bg-tertiary: #e2e8f0;
+            --text-primary: #1e293b; --text-secondary: #64748b; --border-color: #e5e7eb;
+            --accent-color: #3b82f6; --danger-color: #ef4444;
         }
-        body {
-            font-family: 'Cairo', sans-serif;
+        html.dark {
+            --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-tertiary: #334155;
+            --text-primary: #e2e8f0; --text-secondary: #94a3b8; --border-color: #334155;
         }
-        #sidebar {
-            transition: transform 0.3s ease-in-out;
-            transform: translateX(100%); /* Start hidden off-screen to the right */
-        }
-        #sidebar.open {
-            transform: translateX(0);
-        }
-        #main-content-wrapper {
-            width: 100%;
-            transition: margin-right 0.3s ease-in-out;
-        }
-        @media (min-width: 768px) {
-            #main-content-wrapper.shifted {
-                margin-right: 256px; /* Push content by sidebar width on desktop */
-            }
-        }
-        #sidebar-overlay {
-            transition: opacity 0.3s ease-in-out;
-        }
-
-        .sidebar-link {
-            transition: all 0.2s ease;
-            transform: scale(1);
-        }
-        .sidebar-link:hover {
-            background-color: #3b82f6;
-            color: white;
-            transform: scale(1.05);
-        }
-        .sidebar-link.active {
-            background-color: #2563eb;
-            color: white;
-            box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39);
-        }
+        body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); transition: background-color 0.3s, color 0.3s; }
+        .card { background-color: var(--bg-secondary); border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
+        #sidebar { transition: transform 0.3s ease-in-out; transform: translateX(100%); background-color: var(--bg-secondary); }
+        #sidebar.open { transform: translateX(0); }
+        #main-content-wrapper { width: 100%; transition: margin-right 0.3s ease-in-out; }
+        @media (min-width: 768px) { #main-content-wrapper.shifted { margin-right: 256px; } }
+        #sidebar-overlay { transition: opacity 0.3s ease-in-out; }
+        .sidebar-link { color: var(--text-secondary); transition: all 0.2s ease; transform: scale(1); }
+        .sidebar-link:hover { background-color: var(--accent-color); color: white; transform: scale(1.05); }
+        .sidebar-link.active { background-color: #2563eb; color: white !important; box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39); }
         .sidebar-link svg { transition: all 0.2s ease; }
-        .sidebar-link:hover svg, .sidebar-link.active svg {
-            filter: brightness(0) invert(1);
-        }
-
-        .page-content { display: none; animation: fadeIn 0.5s ease-out; }
+        .sidebar-link:hover svg, .sidebar-link.active svg { filter: brightness(0) invert(1); }
+        .page-content { display: none; }
         .page-content.active { display: block; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: var(--bg-primary); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
-
-        .chat-bubble-user { background-color: #3b82f6; color: white; }
-        .chat-bubble-bot { background-color: #e5e7eb; color: #1f2937; }
-        .chat-container { height: calc(100vh - 450px); min-height: 300px; }
-        
-        .mode-button.active {
-            background-color: #16a34a; /* Green */
-            color: white;
-            transform: scale(1.05);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.6);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 100; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
-        }
+        .chat-bubble-user { background-color: var(--accent-color); color: white; }
+        .chat-bubble-bot { background-color: var(--bg-tertiary); color: var(--text-primary); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; }
         .modal-overlay.visible { opacity: 1; visibility: visible; }
-        .modal-content {
-            background: white; padding: 1.5rem; border-radius: 0.5rem;
-            width: 90%; max-width: 500px; transform: scale(0.95); transition: transform 0.3s;
-        }
+        .modal-content { background-color: var(--bg-secondary); width: 90%; max-width: 500px; transform: scale(0.95); transition: transform 0.3s; border-radius: 1rem; padding: 2rem; }
         .modal-overlay.visible .modal-content { transform: scale(1); }
-        
-        .pomodoro-progress {
-            stroke-dasharray: 283;
-            stroke-dashoffset: 283;
-            transition: stroke-dashoffset 1s linear;
-        }
-        
-        .task-item input:checked + span {
-            text-decoration: line-through;
-            color: #6b7280;
-        }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent-color); }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .collapsible-content { max-height: 1000px; overflow: hidden; transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out, margin 0.5s ease-in-out; }
+        .collapsible-content.collapsed { max-height: 0; padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; border-top: 0 !important; }
+        .collapse-icon { transition: transform 0.3s; }
+        .collapse-icon.collapsed { transform: rotate(-90deg); }
+        .mode-button { transition: all 0.2s ease-in-out; }
+        .mode-button.active { background-color: var(--accent-color); color: white; box-shadow: 0 0 0 2px var(--accent-color); }
     </style>
+    <script>
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
 </head>
-<body class="bg-slate-100 text-slate-800">
+<body class="text-slate-800 dark:bg-slate-900 dark:text-slate-200">
+    
+    <div id="app-container">
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 opacity-0 pointer-events-none md:hidden"></div>
 
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 opacity-0 pointer-events-none md:hidden"></div>
+        <div class="relative min-h-screen md:flex">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="fixed top-0 right-0 h-full w-64 p-4 shadow-lg z-40">
+                <div class="flex flex-col h-full">
+                    <div class="text-center border-b dark:border-slate-700 pb-4 mb-4">
+                        <h1 class="text-2xl font-bold text-blue-600">صديقي الدراسي</h1>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">مرحباً, <span id="user-name-sidebar"></span>!</p>
+                    </div>
+                    <nav class="flex-grow custom-scrollbar overflow-y-auto">
+                        <p class="px-3 text-xs font-semibold text-slate-400 uppercase mb-2">القائمة الرئيسية</p>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-schedule"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg><span>جدول المواعيد</span></a></li>
+                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-attendance-stats"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg><span>الحضور والإحصائيات</span></a></li>
+                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-financials"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01M12 6v-1h4a2 2 0 012 2v11a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h4z" /></svg><span>الماليات</span></a></li>
+                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-ai"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg><span>المساعد الذكي</span></a></li>
+                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-music"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 6l12-3" /></svg><span>موسيقى حماسية</span></a></li>
+                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-files"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><span>ملفاتك الدراسية</span></a></li>
+                        </ul>
+                        <p class="px-3 text-xs font-semibold text-slate-400 uppercase mt-6 mb-2">أدوات الإنتاجية</p>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-pomodoro"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span>مؤقت بومودورو</span></a></li>
+                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-tasks"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg><span>قائمة المهام</span></a></li>
+                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-settings"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span>الإعدادات</span></a></li>
+                        </ul>
+                    </nav>
+                    <div class="border-t dark:border-slate-700 pt-4 text-center">
+                         <p id="age-display" class="text-sm text-slate-600 dark:text-slate-400"></p>
+                         <p class="text-xs text-slate-500 dark:text-slate-500">الصف الثالث الإعدادي</p>
+                    </div>
+                </div>
+            </aside>
 
-    <div class="relative min-h-screen md:flex">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="fixed top-0 right-0 h-full bg-white text-slate-800 w-64 p-4 shadow-lg z-40">
-            <div class="flex flex-col h-full">
-                <div class="text-center border-b pb-4 mb-4">
-                    <h1 class="text-2xl font-bold text-blue-600">صديقي الدراسي</h1>
-                    <p class="text-sm text-slate-500">مرحباً, <span id="user-name-sidebar"></span>!</p>
-                </div>
-                <nav class="flex-grow custom-scrollbar overflow-y-auto">
-                    <p class="px-3 text-xs font-semibold text-slate-400 uppercase mb-2">القائمة الرئيسية</p>
-                    <ul class="space-y-2">
-                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-schedule"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg><span>جدول المواعيد</span></a></li>
-                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-attendance-stats"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg><span>الحضور والإحصائيات</span></a></li>
-                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-ai"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg><span>المساعد الذكي</span></a></li>
-                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-files"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><span>ملفاتك الدراسية</span></a></li>
-                    </ul>
-                    <p class="px-3 text-xs font-semibold text-slate-400 uppercase mt-6 mb-2">أدوات الإنتاجية</p>
-                    <ul class="space-y-2">
-                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-pomodoro"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span>مؤقت بومودورو</span></a></li>
-                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-tasks"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg><span>قائمة المهام</span></a></li>
-                        <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-settings"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span>الإعدادات</span></a></li>
-                    </ul>
-                </nav>
-                <div class="border-t pt-4 text-center">
-                     <p id="age-display" class="text-sm text-slate-600"></p>
-                     <p class="text-xs text-slate-500">الصف الثالث الإعدادي</p>
-                </div>
+            <!-- Main Content Wrapper -->
+            <div id="main-content-wrapper" class="flex-1 flex flex-col w-full overflow-hidden">
+                <header class="card p-2 md:p-4 flex justify-between items-center z-20 shadow-md">
+                    <div class="flex items-center gap-4">
+                         <button id="menu-button" class="text-slate-500 hover:text-blue-600 focus:outline-none p-2">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                        </button>
+                        <h1 id="welcome-message" class="hidden md:block text-xl md:text-2xl font-bold text-blue-600"></h1>
+                    </div>
+                    <div class="text-center bg-blue-50 dark:bg-slate-800 text-blue-800 dark:text-blue-300 p-2 rounded-lg shadow-inner">
+                        <p id="motivational-quote" class="text-sm md:text-base italic"></p>
+                    </div>
+                </header>
+
+                <main class="flex-1 overflow-x-hidden overflow-y-auto p-2 sm:p-4 md:p-6">
+                    <div id="page-schedule" class="page-content"></div>
+                    <div id="page-attendance-stats" class="page-content"></div>
+                    <div id="page-financials" class="page-content"></div>
+                    <div id="page-ai" class="page-content"></div>
+                    <div id="page-files" class="page-content"></div>
+                    <div id="page-pomodoro" class="page-content"></div>
+                    <div id="page-tasks" class="page-content"></div>
+                    <div id="page-settings" class="page-content"></div>
+                    <div id="page-music" class="page-content"></div>
+                </main>
             </div>
-        </aside>
-
-        <!-- Main Content Wrapper -->
-        <div id="main-content-wrapper" class="flex-1 flex flex-col w-full overflow-hidden transition-all duration-300 ease-in-out">
-            <header class="bg-white shadow-md p-2 md:p-4 flex justify-between items-center z-20">
-                <div class="flex items-center gap-4">
-                     <button id="menu-button" class="text-slate-500 hover:text-blue-600 focus:outline-none p-2">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
-                    </button>
-                    <h1 id="welcome-message" class="hidden md:block text-xl md:text-2xl font-bold text-blue-600"></h1>
-                </div>
-                <div class="text-center bg-blue-50 text-blue-800 p-2 rounded-lg shadow-inner">
-                    <p id="motivational-quote" class="text-sm md:text-base italic"></p>
-                </div>
-            </header>
-
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-2 sm:p-4 md:p-6">
-                <div id="page-schedule" class="page-content"></div>
-                <div id="page-attendance-stats" class="page-content"></div>
-                <div id="page-ai" class="page-content"></div>
-                <div id="page-files" class="page-content"></div>
-                <div id="page-pomodoro" class="page-content"></div>
-                <div id="page-tasks" class="page-content"></div>
-                <div id="page-settings" class="page-content"></div>
-            </main>
         </div>
     </div>
 
     <!-- Modals -->
-    <div id="confirmation-modal" class="modal-overlay"></div>
-    <div id="absence-modal" class="modal-overlay"></div>
-    <div id="tomorrow-modal" class="modal-overlay"></div>
+    <div id="confirmation-modal" class="modal-overlay fixed inset-0"></div>
+    <div id="early-log-modal" class="modal-overlay fixed inset-0"></div>
+    <div id="tomorrow-modal" class="modal-overlay fixed inset-0"></div>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, where, limit, writeBatch, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, where, limit, writeBatch, updateDoc, setDoc, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // --- CONFIGURATION ---
         const firebaseConfig = {
-            apiKey: "AIzaSyAdpM6wMWcMVCEFjhxFDlr2oIzD2U", // استبدل بمفتاحك
+            apiKey: "AIzaSyAdpM6wMWcMVCEFjhxFDlr2oIzD2U", 
             authDomain: "my-lessons-tracker.firebaseapp.com",
             projectId: "my-lessons-tracker",
             storageBucket: "my-lessons-tracker.appspot.com",
@@ -181,7 +147,7 @@
             appId: "1:184479541651:web:2ec9f1189713b6a736066"
         };
         
-        const GEMINI_API_KEY = "AIzaSyCIdmKpoz_OLvkk94HfGjaV6x3Ldrj6Yts"; 
+        const GEMINI_API_KEY = "AIzaSyAq0ZvO25ujyl5kxwN6TIrB2xBP9yK4tw0"; 
         
         const userData = { name: "سيف الدين", birthDate: "2011-03-19", id: "seif_eldeen_user" };
         const scheduleData = [
@@ -192,38 +158,84 @@
             { subject: "الرياضيات", teacher: "أستاذ محمد", days: [], time: "" },
         ];
         const dayMapping = { "الأحد": 0, "الاثنين": 1, "الثلاثاء": 2, "الأربعاء": 3, "الخميس": 4, "الجمعة": 5, "السبت": 6 };
-        const subjectColors = { "اللغة العربية": "#a16207", "اللغة الإنجليزية": "#3b82f6", "العلوم": "#16a34a", "الدراسات الاجتماعية": "#f97316", "الرياضيات": "#8b5cf6" };
+        const subjectColors = { 
+            "اللغة العربية": { light: '#fef3c7', dark: '#451a03', base: '#78350f' }, 
+            "اللغة الإنجليزية": { light: '#dbeafe', dark: '#1e3a8a', base: '#1e40af' }, 
+            "العلوم": { light: '#dcfce7', dark: '#14532d', base: '#166534' }, 
+            "الدراسات الاجتماعية": { light: '#ffedd5', dark: '#7c2d12', base: '#9a3412' }, 
+            "الرياضيات": { light: '#ede9fe', dark: '#4c1d95', base: '#5b21b6' } 
+        };
 
         // --- GLOBAL STATE ---
         let attendanceChart = null;
+        let financialDisplayDate = new Date();
+        let db;
 
         // --- INITIALIZATION ---
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("Firebase initialized successfully.");
+        } catch (e) {
+            console.error("Firebase initialization failed:", e);
+            alert("فشل الاتصال بقاعدة البيانات. الرجاء التأكد من صحة بيانات Firebase في الكود.");
+        }
         
         document.addEventListener('DOMContentLoaded', () => {
+            if (db) {
+                initializeAppWithData();
+            }
+        });
+
+        function initializeAppWithData() {
             injectPageHTML();
             setupNavigation();
             setupUserInfo();
             setupSchedulePage();
             setupAttendanceStatsPage();
+            initializeFinancialsPage();
             initializeChat();
             initializePomodoro();
             initializeTodoList();
             initializeSettings();
 
             document.getElementById('google-drive-btn').addEventListener('click', () => window.open('https://drive.google.com', '_blank'));
-        });
+            document.body.addEventListener('click', () => {
+                requestNotificationPermission();
+                Tone.start();
+            }, { once: true });
+            
+            setupNotificationChecks();
+        }
 
         // --- PAGE HTML INJECTION ---
         function injectPageHTML() {
-            document.getElementById('page-schedule').innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8"><div class="bg-white p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-blue-500 pb-2"><h2 class="text-xl md:text-2xl font-bold text-gray-800">دروس اليوم</h2><button id="show-tomorrow-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-full hover:bg-blue-600 transition">ماذا يوجد غداً؟</button></div><div id="today-lessons-container" class="space-y-3"></div></div><div class="bg-white p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-gray-500 pb-2"><h2 class="text-xl md:text-2xl font-bold text-gray-800">الجدول الكامل</h2><button id="toggle-full-schedule-btn" class="text-sm bg-gray-200 text-gray-800 py-1 px-3 rounded-full hover:bg-gray-300 transition">عرض</button></div><div id="full-schedule-container" class="hidden space-y-4 mt-4"></div></div></div>`;
-            document.getElementById('page-attendance-stats').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg"><div class="grid grid-cols-1 xl:grid-cols-3 gap-8"><div class="xl:col-span-1"><h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4 border-b-2 border-teal-500 pb-2">تسجيل الحضور</h2><div id="attendance-logger" class="space-y-3 mt-4"><label for="lesson-select" class="font-semibold">اختر الدرس:</label><select id="lesson-select" class="w-full p-2 border rounded-md bg-gray-50"></select><div class="flex gap-2"><button data-status="attended" class="log-btn w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg">حضور</button><button data-status="absent" class="log-btn w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">غياب</button></div><p id="log-status" class="text-center font-semibold text-sm h-5"></p></div></div><div class="xl:col-span-2"><h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4 border-b-2 border-purple-500 pb-2">إحصائيات</h2><div style="height: 300px;" class="mt-4"><canvas id="attendance-chart"></canvas></div><div id="chart-legend" class="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 border-t pt-4"></div></div></div><div class="mt-8 border-t pt-6"><button id="toggle-history-btn" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-lg transition-colors">عرض سجل الحضور التفصيلي</button><div id="attendance-history-container" class="hidden mt-4"><h3 class="text-lg font-bold text-gray-800 mb-2">سجل الحصص</h3><div id="attendance-history-list" class="space-y-2 max-h-96 custom-scrollbar overflow-y-auto p-2 bg-slate-50 rounded-lg"></div></div></div></div>`;
-            document.getElementById('page-ai').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg flex flex-col h-full"><div class="flex justify-between items-center border-b-2 border-green-500 pb-2 mb-4"><h2 class="text-xl md:text-2xl font-bold text-gray-800">المساعد الذكي</h2><button id="clear-chat-btn" class="text-sm bg-red-500 text-white py-1 px-3 rounded-full hover:bg-red-600 transition">مسح المحادثة</button></div><div class="mb-4 flex flex-wrap gap-2 justify-center p-2 rounded-lg bg-gray-100"><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="general">عام</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="arabic">عربية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="english">إنجليزية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="science">علوم</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="studies">دراسات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="math">رياضيات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="islamic">دين</button></div><div id="chat-box" class="chat-container custom-scrollbar border rounded-lg p-4 overflow-y-auto bg-slate-50 flex-grow"></div><div class="mt-4 flex gap-2"><input type="text" id="chat-input" class="flex-grow border rounded-lg p-2" placeholder="اسألني أي حاجة يا سيف..."><button id="send-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">أرسل</button></div></div>`;
-            document.getElementById('page-files').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-indigo-500 pb-2"><h2 class="text-xl md:text-2xl font-bold text-gray-800">ملفاتك الدراسية</h2></div><div class="text-center p-4 md:p-8 border-2 border-dashed rounded-lg"><img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Google Drive Logo" class="h-16 md:h-20 mx-auto mb-4"><p class="mb-4 text-slate-600 text-base md:text-lg">احتفظ بملفاتك منظمة وآمنة على Google Drive.</p><p class="mb-6 text-slate-500 text-sm md:text-base">يمكنك رفع ملخصاتك، واجباتك، ومذكراتك للوصول إليها من أي مكان.</p><button id="google-drive-btn" class="w-full max-w-xs mx-auto bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">الذهاب إلى Google Drive</button><p class="text-xs text-slate-400 mt-3">سيتم فتح Google Drive في نافذة جديدة.</p></div></div>`;
-            document.getElementById('page-pomodoro').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg max-w-md mx-auto text-center"><h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-red-500 pb-2">مؤقت بومودورو</h2><div class="relative w-48 h-48 mx-auto mb-6"><svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-slate-200" stroke-width="7" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle id="pomodoro-progress-circle" class="pomodoro-progress text-red-500" stroke-width="7" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%;" /></svg><div id="pomodoro-time" class="absolute inset-0 flex items-center justify-center text-4xl font-bold">25:00</div></div><div id="pomodoro-status" class="mb-6 font-semibold text-lg">وقت التركيز</div><div class="flex justify-center gap-4"><button id="pomodoro-start" class="bg-red-500 text-white px-8 py-2 rounded-lg font-bold">ابدأ</button><button id="pomodoro-pause" class="bg-yellow-500 text-white px-8 py-2 rounded-lg font-bold hidden">إيقاف مؤقت</button><button id="pomodoro-reset" class="bg-gray-500 text-white px-8 py-2 rounded-lg font-bold">إعادة ضبط</button></div></div>`;
-            document.getElementById('page-tasks').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold text-gray-800 mb-4 border-b-2 border-yellow-500 pb-2">قائمة المهام اليومية</h2><form id="task-form" class="flex gap-2 mb-4"><input type="text" id="task-input" class="flex-grow border rounded-lg p-2" placeholder="أضف مهمة جديدة..." required><button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg">أضف</button></form><div id="task-list" class="space-y-2"></div></div>`;
-            document.getElementById('page-settings').innerHTML = `<div class="bg-white p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold text-gray-800 mb-4 border-b-2 border-gray-500 pb-2">الإعدادات</h2><div class="space-y-4"><h3 class="text-lg font-semibold">منطقة الخطر</h3><div class="bg-red-50 border border-red-200 p-4 rounded-lg"><p class="font-semibold">حذف جميع بيانات الحضور</p><p class="text-sm text-slate-600 mb-2">سيؤدي هذا إلى حذف جميع سجلات الحضور والغياب نهائيًا. لا يمكن التراجع عن هذا الإجراء.</p><button id="delete-attendance-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">حذف كل السجلات</button></div></div></div>`;
+            document.getElementById('page-schedule').innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8"><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-blue-500 dark:border-blue-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">دروس اليوم</h2><button id="show-tomorrow-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-full hover:bg-blue-600 transition">ماذا يوجد غداً؟</button></div><div id="today-lessons-container" class="space-y-3"><p>جاري تحميل الدروس...</p></div></div><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">الجدول الكامل</h2><button id="toggle-full-schedule-btn" class="text-sm bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-slate-200 py-1 px-3 rounded-full hover:bg-gray-300 dark:hover:bg-slate-600 transition">عرض</button></div><div id="full-schedule-container" class="hidden space-y-4 mt-4"></div></div></div>`;
+            document.getElementById('page-attendance-stats').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="grid grid-cols-1 xl:grid-cols-3 gap-8"><div class="xl:col-span-1"><h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-teal-500 dark:border-teal-400 pb-2">تسجيل الحضور</h2><div id="attendance-logger" class="space-y-3 mt-4"><label for="lesson-select" class="font-semibold">اختر الدرس:</label><select id="lesson-select" class="w-full p-2 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"></select></div><div class="flex gap-2 mt-3"><button data-status="attended" class="log-btn w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">حضور</button><button data-status="absent" class="log-btn w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">غياب</button></div><p id="log-status" class="text-center font-semibold text-sm h-5"></p></div><div class="xl:col-span-2"><h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-purple-500 dark:border-purple-400 pb-2">إحصائيات</h2><div id="enhanced-stats" class="grid grid-cols-2 md:grid-cols-3 gap-2 text-center mb-4"></div><div style="height: 250px;" class="mt-4"><canvas id="attendance-chart"></canvas></div><div id="chart-legend" class="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 border-t dark:border-slate-700 pt-4"></div></div></div><div class="mt-8 border-t dark:border-slate-700 pt-6"><button id="toggle-history-btn" class="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 font-bold py-2 px-4 rounded-lg transition-colors">عرض سجل الحضور التفصيلي</button><div id="attendance-history-container" class="hidden mt-4"><h3 class="text-lg font-bold mb-2">سجل الحصص</h3><div id="attendance-history-list" class="space-y-2 max-h-96 custom-scrollbar overflow-y-auto p-2 bg-slate-100 dark:bg-slate-800 rounded-lg"><p>جاري تحميل السجل...</p></div></div></div></div>`;
+            document.getElementById('page-financials').innerHTML = `<div class="space-y-8"><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-green-500 dark:border-green-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">إدارة المصاريف</h2><button id="toggle-financials-btn" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><svg class="collapse-icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button></div><div id="financials-list-container" class="collapsible-content"><div id="financials-list" class="space-y-4"><p>جاري تحميل...</p></div></div></div><div id="payment-history-section"></div></div>`;
+            document.getElementById('page-ai').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg flex flex-col h-full"><div class="flex justify-between items-center border-b-2 border-green-500 dark:border-green-400 pb-2 mb-4"><h2 class="text-xl md:text-2xl font-bold">المساعد الذكي</h2><button id="clear-chat-btn" class="text-sm bg-red-500 text-white py-1 px-3 rounded-full hover:bg-red-600 transition">مسح المحادثة</button></div><div class="mb-4 flex flex-wrap gap-2 justify-center p-2 rounded-lg bg-slate-100 dark:bg-slate-800"><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="general">عام</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="arabic">عربية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="english">إنجليزية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="science">علوم</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="studies">دراسات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="math">رياضيات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="islamic">دين</button></div><div id="chat-box" class="chat-container custom-scrollbar border dark:border-slate-700 rounded-lg p-4 overflow-y-auto bg-slate-50 dark:bg-slate-800 flex-grow"></div><div class="mt-4 flex gap-2"><input type="text" id="chat-input" class="flex-grow border dark:border-slate-600 rounded-lg p-2 bg-transparent" placeholder="اسألني أي حاجة..."><button id="send-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">أرسل</button></div></div>`;
+            document.getElementById('page-files').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-indigo-500 dark:border-indigo-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">ملفاتك الدراسية</h2></div><div class="text-center p-4 md:p-8 border-2 border-dashed dark:border-slate-600 rounded-lg"><img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Google Drive Logo" class="h-16 md:h-20 mx-auto mb-4"><p class="mb-4 text-slate-600 dark:text-slate-400 text-base md:text-lg">احتفظ بملفاتك منظمة وآمنة على Google Drive.</p><p class="mb-6 text-slate-500 dark:text-slate-500 text-sm md:text-base">يمكنك رفع ملخصاتك، واجباتك، ومذكراتك للوصول إليها من أي مكان.</p><button id="google-drive-btn" class="w-full max-w-xs mx-auto bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">الذهاب إلى Google Drive</button><p class="text-xs text-slate-400 mt-3">سيتم فتح Google Drive في نافذة جديدة.</p></div></div>`;
+            document.getElementById('page-pomodoro').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-md mx-auto text-center"><h2 class="text-2xl font-bold mb-6 border-b-2 border-red-500 dark:border-red-400 pb-2">مؤقت بومودورو</h2><div class="relative w-48 h-48 mx-auto mb-6"><svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-slate-200 dark:text-slate-700" stroke-width="7" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle id="pomodoro-progress-circle" class="pomodoro-progress text-red-500" stroke-width="7" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%;" /></svg><div id="pomodoro-time" class="absolute inset-0 flex items-center justify-center text-4xl font-bold">25:00</div></div><div id="pomodoro-status" class="mb-6 font-semibold text-lg">وقت التركيز</div><div class="flex justify-center gap-4"><button id="pomodoro-start" class="bg-red-500 text-white px-8 py-2 rounded-lg font-bold transition-transform hover:scale-105">ابدأ</button><button id="pomodoro-pause" class="bg-yellow-500 text-white px-8 py-2 rounded-lg font-bold hidden">إيقاف مؤقت</button><button id="pomodoro-reset" class="bg-gray-500 text-white px-8 py-2 rounded-lg font-bold">إعادة ضبط</button></div><div class="mt-6 border-t dark:border-slate-700 pt-4 space-y-2"><h3 class="font-semibold">تخصيص الأوقات (بالدقائق)</h3><div class="flex justify-around gap-2"><div class="flex-1"><label for="work-time-input" class="text-sm">تركيز</label><input type="number" id="work-time-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="short-break-input" class="text-sm">راحة قصيرة</label><input type="number" id="short-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="long-break-input" class="text-sm">راحة طويلة</label><input type="number" id="long-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div></div><button id="save-pomodoro-settings" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded-md text-sm">حفظ الإعدادات</button></div></div>`;
+            document.getElementById('page-tasks').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><div class="flex justify-between items-center mb-4 border-b-2 border-yellow-500 dark:border-yellow-400 pb-2"><h2 class="text-2xl font-bold">قائمة المهام</h2><div class="flex gap-2 items-center"><label for="task-filter" class="text-sm">عرض:</label><select id="task-filter" class="text-sm p-1 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"><option value="all">الكل</option><option value="pending">قيد التنفيذ</option><option value="completed">مكتملة</option></select></div></div><form id="task-form" class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4"><input type="text" id="task-input" class="md:col-span-4 border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600" placeholder="أضف مهمة جديدة..." required><div class="flex items-center gap-2"><label for="task-due-time" class="text-sm">الوقت:</label><input type="time" id="task-due-time" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600 w-full"></div><select id="task-priority" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600"><option value="low">أولوية منخفضة</option><option value="medium" selected>أولوية متوسطة</option><option value="high">أولوية عالية</option></select><button type="submit" class="md:col-span-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">أضف مهمة</button></form><div id="task-list" class="space-y-2"><p>جاري تحميل المهام...</p></div></div>`;
+            document.getElementById('page-settings').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2">الإعدادات</h2><div class="space-y-6"><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg flex justify-between items-center"><div><p class="font-semibold">الوضع الليلي</p><p class="text-sm text-slate-600 dark:text-slate-400">لتجربة مريحة للعين في الإضاءة المنخفضة.</p></div><label class="switch"><input type="checkbox" id="dark-mode-toggle"><span class="slider"></span></label></div><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg"><p class="font-semibold">إدارة الإشعارات</p><p class="text-sm text-slate-600 dark:text-slate-400 mb-2">يمكنك تفعيل أو إلغاء تفعيل الإشعارات من إعدادات المتصفح.</p><button id="notification-permission-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">طلب إذن الإشعارات</button></div><div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 p-4 rounded-lg"><p class="font-semibold text-blue-800 dark:text-blue-300">سلة محذوفات المدفوعات</p><p class="text-sm text-blue-600 dark:text-blue-400 mb-2">يمكنك استرجاع سجلات الشهور المحذوفة من هنا.</p><div id="recycle-bin-container" class="space-y-2 mt-2"><p class="text-xs text-slate-500">سلة المحذوفات فارغة.</p></div></div><div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 p-4 rounded-lg"><p class="font-semibold text-red-800 dark:text-red-300">منطقة الخطر</p><p class="text-sm text-red-600 dark:text-red-400 mb-2">سيؤدي هذا إلى حذف جميع سجلات الحضور والغياب نهائيًا. لا يمكن التراجع عن هذا الإجراء.</p><button id="delete-attendance-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">حذف كل السجلات</button></div></div></div>`;
+            // <<< MODIFIED >>> HTML for Music page
+            document.getElementById('page-music').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold mb-4 border-b-2 border-pink-500 dark:border-pink-400 pb-2">موسيقى حماسية للمذاكرة</h2>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="font-semibold mb-2">أغنية حماسية مقترحة</h3>
+                        <iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/7GhIk7Il098yCjg4BQjzvb?utm_source=generator" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">قائمة تشغيل للتركيز (Lofi Beats)</h3>
+                        <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DWWQRwui0ExPn?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">موسيقى إلكترونية للبرمجة والدراسة</h3>
+                        <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DX5trt9i14X7j?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                    </div>
+                </div>
+            </div>`;
         }
 
         // --- NAVIGATION & UI ---
@@ -246,8 +258,12 @@
                 pages.forEach(p => p.classList.toggle('active', p.id === pageId));
                 sidebarLinks.forEach(l => l.classList.toggle('active', l.dataset.page === pageId));
                 if (pageId === 'page-attendance-stats') {
-                    updateAttendanceChart();
-                    // displayAttendanceHistory is now called by a button
+                    updateAttendancePage();
+                } else if (pageId === 'page-financials') {
+                    displayFinancials();
+                    renderPaymentHistoryForDate(new Date());
+                } else if (pageId === 'page-settings') {
+                    renderRecycleBin();
                 }
                 if (window.innerWidth < 768 && sidebar.classList.contains('open')) {
                     toggleSidebar();
@@ -261,7 +277,7 @@
                 showPage(link.dataset.page);
             }));
 
-            showPage('page-schedule'); // Default page
+            showPage('page-schedule');
         }
         
         function setupUserInfo() {
@@ -273,6 +289,137 @@
             document.getElementById('motivational-quote').textContent = `"${motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]}"`;
         }
 
+        // --- NOTIFICATIONS ---
+        function setupNotificationChecks() {
+            setInterval(checkAndSendNotifications, 60000);
+            setInterval(updateTodayLessonsStatus, 60000);
+            setInterval(checkHourlyTaskReminder, 3600000);
+            setInterval(checkProactiveAINotification, 14400000);
+            checkDailyPaymentReminders();
+            setInterval(checkDailyPaymentReminders, 21600000);
+        }
+
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("هذا المتصفح لا يدعم الإشعارات.");
+                return;
+            }
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        sendNotification("تم تفعيل الإشعارات!", "ستتلقى الآن تذكيرات بالدروس والمهام.");
+                    }
+                });
+            }
+        }
+
+        function sendNotification(title, body) {
+            if (Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: 'https://img.icons8.com/color/48/000000/student-male.png' 
+                });
+            }
+        }
+
+        function playAlarmSound() {
+            try {
+                const synth = new Tone.Synth().toDestination();
+                const now = Tone.now();
+                synth.triggerAttackRelease("G5", "0.2", now);
+                synth.triggerAttackRelease("G5", "0.2", now + 0.3);
+            } catch(e) {
+                console.error("Could not play sound. User may not have interacted with the page yet.", e);
+            }
+        }
+
+        function checkAndSendNotifications() {
+            const now = new Date();
+            const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
+            
+            scheduleData.forEach(lesson => {
+                if (lesson.days.includes(todayDayName) && lesson.time) {
+                    const [hours, minutes] = lesson.time.split(':');
+                    const lessonTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+                    const diffMinutes = (lessonTime.getTime() - now.getTime()) / 60000;
+
+                    const reminders = [
+                        { time: 30, text: "سيبدأ خلال 30 دقيقة", sound: true },
+                        { time: 15, text: "سيبدأ خلال 15 دقيقة" }, 
+                        { time: 5, text: "سيبدأ خلال 5 دقائق" }, 
+                        { time: 0, text: "قد بدأ الآن!" }
+                    ];
+
+                    reminders.forEach(r => {
+                        if (diffMinutes > r.time - 1 && diffMinutes <= r.time) {
+                            const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
+                            if (!localStorage.getItem(key)) {
+                                sendNotification(`تذكير بدرس ${lesson.subject}`, `الدرس ${r.text}`);
+                                if (r.sound) {
+                                    playAlarmSound();
+                                }
+                                localStorage.setItem(key, 'sent');
+                            }
+                        }
+                    });
+                     
+                    if (diffMinutes < -60) {
+                        reminders.forEach(r => {
+                            const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
+                            localStorage.removeItem(key);
+                        });
+                    }
+                }
+            });
+        }
+        
+        async function checkHourlyTaskReminder() {
+            const currentHour = new Date().getHours();
+            const key = `hourly_task_reminder_${currentHour}`;
+
+            if (localStorage.getItem(key)) return;
+
+            const tasksRef = collection(db, "users", userData.id, "tasks");
+            const q = query(tasksRef, where("completed", "==", false));
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                const taskCount = snapshot.size;
+                const firstTaskText = snapshot.docs[0].data().text;
+                sendNotification(
+                    `تذكير بالمهام (${taskCount})`,
+                    `لديك ${taskCount} مهمة لم تكتمل بعد، مثل: "${firstTaskText}". لا تنس إنجازها!`
+                );
+                localStorage.setItem(key, 'sent');
+            }
+        }
+
+        function checkProactiveAINotification() {
+            const lastCheckin = localStorage.getItem('ai_checkin_sent_timestamp');
+            const now = Date.now();
+
+            if (lastCheckin && (now - parseInt(lastCheckin)) < 14400000) {
+                return;
+            }
+            
+            const wasUnanswered = localStorage.getItem('ai_checkin_unanswered') === 'true';
+
+            if (wasUnanswered) {
+                sendNotification(
+                    'صديقك الدراسي حزين 😟',
+                    'لم ترد عليّ في المرة السابقة. أنا قلق عليك. كيف هي أخبارك ودراستك؟'
+                );
+            } else {
+                sendNotification(
+                    'صديقك الدراسي يطمئن عليك 👋',
+                    `مرحباً يا ${userData.name}! كيف تسير دراستك؟ هل تحتاج إلى مساعدة في أي شيء؟`
+                );
+            }
+
+            localStorage.setItem('ai_checkin_sent_timestamp', now.toString());
+            localStorage.setItem('ai_checkin_unanswered', 'true');
+        }
+        
         // --- FEATURES ---
 
         function setupSchedulePage() {
@@ -281,7 +428,6 @@
             
             displayFullSchedule(scheduleContainer);
             updateTodayLessonsStatus();
-            setInterval(updateTodayLessonsStatus, 60000);
 
             toggleBtn.addEventListener('click', () => {
                 const isHidden = scheduleContainer.classList.toggle('hidden');
@@ -289,18 +435,20 @@
             });
 
             document.getElementById('show-tomorrow-btn').addEventListener('click', displayTomorrowLessons);
+            document.getElementById('early-log-modal').innerHTML = `<div class="modal-content"><h3 class="text-xl font-bold mb-4">تأكيد التسجيل</h3><p id="early-log-message" class="mb-4"></p><textarea id="early-log-reason" class="w-full p-2 border rounded-md mb-4 dark:bg-slate-700 dark:border-slate-600" rows="3" placeholder="يمكنك كتابة السبب هنا (اختياري)..."></textarea><div class="flex justify-end gap-2"><button id="cancel-early-log" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500 rounded-md">إلغاء</button><button id="confirm-early-log" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">تأكيد التسجيل</button></div></div>`;
             document.getElementById('tomorrow-modal').innerHTML = `<div class="modal-content"><h3 class="text-xl font-bold mb-4">دروس الغد</h3><div id="tomorrow-lessons-list" class="space-y-2"></div><div class="flex justify-end mt-4"><button id="close-tomorrow-modal" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md">إغلاق</button></div></div>`;
             document.getElementById('close-tomorrow-modal').addEventListener('click', () => document.getElementById('tomorrow-modal').classList.remove('visible'));
         }
 
         function setupAttendanceStatsPage() {
             const select = document.getElementById('lesson-select');
+            select.innerHTML = '';
             scheduleData.forEach(lesson => {
                 if (lesson.time) select.innerHTML += `<option value="${lesson.subject}">${lesson.subject}</option>`;
             });
+
             document.querySelectorAll('.log-btn').forEach(btn => btn.addEventListener('click', handleLogAction));
-            document.getElementById('absence-modal').innerHTML = `<div class="modal-content"><h3 class="text-xl font-bold mb-4">ما هو سبب الغياب؟</h3><textarea id="absence-reason" class="w-full p-2 border rounded-md mb-4" rows="3" placeholder="اختياري..."></textarea><div class="flex justify-end gap-2"><button id="cancel-absence" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-md">إلغاء</button><button id="confirm-absence" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">تأكيد الغياب</button></div></div>`;
-            document.getElementById('cancel-absence').addEventListener('click', () => document.getElementById('absence-modal').classList.remove('visible'));
+            document.getElementById('cancel-early-log').addEventListener('click', () => document.getElementById('early-log-modal').classList.remove('visible'));
 
             const toggleBtn = document.getElementById('toggle-history-btn');
             const historyContainer = document.getElementById('attendance-history-container');
@@ -316,20 +464,53 @@
         async function handleLogAction(event) {
             const status = event.target.dataset.status;
             const subject = document.getElementById('lesson-select').value;
-            const modal = document.getElementById('absence-modal');
+            if (!subject) {
+                alert("الرجاء اختيار مادة أولاً.");
+                return;
+            }
+
+            const now = new Date();
+            const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
+            const lessonInfo = scheduleData.find(l => l.subject === subject && l.days.includes(todayDayName));
             
-            if (status === 'attended') {
-                logAttendance(subject, 'attended');
-            } else {
+            if (!lessonInfo || !lessonInfo.time) {
+                logAttendance(subject, status, "تسجيل يدوي ليوم بدون حصة مجدولة");
+                return;
+            }
+
+            const [hours, minutes] = lessonInfo.time.split(':');
+            const lessonTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+
+            const startOfDay = new Date(now);
+            startOfDay.setHours(0,0,0,0);
+            const q = query(collection(db, "users", userData.id, "attendance"), where("subject", "==", subject), where("timestamp", ">=", startOfDay));
+            const querySnapshot = await getDocs(q);
+
+            const performLog = () => {
+                const reason = document.getElementById('early-log-reason').value;
+                logAttendance(subject, status, reason);
+                document.getElementById('early-log-modal').classList.remove('visible');
+                document.getElementById('early-log-reason').value = '';
+            };
+
+            if (!querySnapshot.empty) {
+                const modal = document.getElementById('early-log-modal');
+                document.getElementById('early-log-message').textContent = `لقد سجلت حضورك لهذه المادة اليوم بالفعل. هل تريد تسجيلها مرة أخرى؟`;
                 modal.classList.add('visible');
-                document.getElementById('confirm-absence').onclick = () => {
-                    const reason = document.getElementById('absence-reason').value;
-                    logAttendance(subject, 'absent', reason);
-                    modal.classList.remove('visible');
-                    document.getElementById('absence-reason').value = '';
-                };
+                document.getElementById('confirm-early-log').onclick = performLog;
+                return;
+            }
+
+            if (now < lessonTime) {
+                const modal = document.getElementById('early-log-modal');
+                document.getElementById('early-log-message').textContent = 'أنت تسجل الحصة قبل موعدها. هل أنت متأكد؟';
+                modal.classList.add('visible');
+                document.getElementById('confirm-early-log').onclick = performLog;
+            } else {
+                logAttendance(subject, status);
             }
         }
+
 
         async function logAttendance(subject, status, reason = '') {
             const logStatus = document.getElementById('log-status');
@@ -347,7 +528,8 @@
                 logStatus.textContent = `تم تسجيل ${status === 'attended' ? 'حضور' : 'غياب'} بنجاح.`;
                 logStatus.style.color = 'green';
                 setTimeout(() => logStatus.textContent = '', 3000);
-                updateAttendanceChart();
+                updateAttendancePage();
+                updateTodayLessonsStatus();
                 
                 const historyContainer = document.getElementById('attendance-history-container');
                 if (historyContainer && !historyContainer.classList.contains('hidden')) {
@@ -372,7 +554,7 @@
             const q = query(collection(db, "users", userData.id, "attendance"), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
             if (querySnapshot.empty) {
-                historyContainer.innerHTML = '<p class="text-center p-4 text-slate-500">لا يوجد سجلات بعد.</p>';
+                historyContainer.innerHTML = '<p class="text-center p-4 text-slate-500 dark:text-slate-400">لا يوجد سجلات بعد.</p>';
                 return;
             }
             let html = '<ul class="space-y-2">';
@@ -381,8 +563,8 @@
                 const timestamp = data.timestamp.toDate();
                 const statusText = data.status === 'attended' ? 'حضور' : 'غياب';
                 const statusColor = data.status === 'attended' ? 'text-green-600' : 'text-red-600';
-                const reasonHtml = data.reason ? `<p class="text-xs text-gray-500 mt-1">السبب: ${data.reason}</p>` : '';
-                html += `<li class="flex justify-between items-start p-2 bg-white rounded-md border"><div><span class="font-semibold">${data.subject}</span> - <span class="font-bold ${statusColor}">${statusText}</span><span class="text-xs text-slate-500 block">${timestamp.toLocaleString('ar-EG')}</span>${reasonHtml}</div><button data-id="${doc.id}" class="delete-log-btn text-red-400 hover:text-red-600 font-bold text-xl p-1">&times;</button></li>`;
+                const reasonHtml = data.reason ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">السبب: ${data.reason}</p>` : '';
+                html += `<li class="flex justify-between items-start p-2 bg-white dark:bg-slate-900 rounded-md border dark:border-slate-700"><div><span class="font-semibold">${data.subject}</span> - <span class="font-bold ${statusColor}">${statusText}</span><span class="text-xs text-slate-500 dark:text-slate-400 block">${timestamp.toLocaleString('ar-EG')}</span>${reasonHtml}</div><button data-id="${doc.id}" class="delete-log-btn text-red-400 hover:text-red-600 font-bold text-xl p-1">&times;</button></li>`;
             });
             historyContainer.innerHTML = html + '</ul>';
             document.querySelectorAll('.delete-log-btn').forEach(btn => btn.addEventListener('click', deleteSingleAttendanceLog));
@@ -393,57 +575,77 @@
             showConfirmationModal('هل أنت متأكد من حذف هذا السجل؟', async () => {
                 try {
                     await deleteDoc(doc(db, "users", userData.id, "attendance", docId));
-                    updateAttendanceChart();
+                    updateAttendancePage();
                     displayAttendanceHistory();
                 } catch (e) { console.error("Error deleting document: ", e); }
             });
         }
 
-        async function updateAttendanceChart() {
+        async function updateAttendancePage() {
             const attendanceRef = collection(db, "users", userData.id, "attendance");
             const querySnapshot = await getDocs(attendanceRef);
             const stats = {};
             const labels = scheduleData.filter(l => l.time).map(l => l.subject);
             labels.forEach(l => stats[l] = { attended: 0, absent: 0 });
 
+            let totalAttended = 0, totalAbsent = 0;
+
             querySnapshot.forEach(doc => {
                 const data = doc.data();
                 if (stats[data.subject]) {
-                    if (data.status === 'attended') stats[data.subject].attended++;
-                    else if (data.status === 'absent') stats[data.subject].absent++;
+                    if (data.status === 'attended') {
+                        stats[data.subject].attended++;
+                        totalAttended++;
+                    } else if (data.status === 'absent') {
+                        stats[data.subject].absent++;
+                        totalAbsent++;
+                    }
                 }
             });
 
+            const enhancedStatsContainer = document.getElementById('enhanced-stats');
+            const totalLogged = totalAttended + totalAbsent;
+            const attendancePercentage = totalLogged > 0 ? ((totalAttended / totalLogged) * 100).toFixed(1) : 0;
+            const absencePercentage = totalLogged > 0 ? ((totalAbsent / totalLogged) * 100).toFixed(1) : 0;
+            
+            let mostAttended = { name: 'لا يوجد', count: -1 };
+            let mostAbsent = { name: 'لا يوجد', count: -1 };
+
+            for(const subject in stats) {
+                if(stats[subject].attended > mostAttended.count) {
+                    mostAttended = { name: subject, count: stats[subject].attended };
+                }
+                if(stats[subject].absent > mostAbsent.count) {
+                    mostAbsent = { name: subject, count: stats[subject].absent };
+                }
+            }
+
+            enhancedStatsContainer.innerHTML = `
+                <div class="p-2 rounded-lg bg-green-50 dark:bg-green-900/20"><span class="block font-bold text-lg text-green-500">${totalAttended}</span><span class="text-xs">حصص الحضور</span></div>
+                <div class="p-2 rounded-lg bg-red-50 dark:bg-red-900/20"><span class="block font-bold text-lg text-red-500">${totalAbsent}</span><span class="text-xs">حصص الغياب</span></div>
+                <div class="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20"><span class="block font-bold text-lg text-blue-500">${attendancePercentage}%</span><span class="text-xs">نسبة الحضور</span></div>
+                <div class="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20"><span class="block font-bold text-lg text-orange-500">${absencePercentage}%</span><span class="text-xs">نسبة الغياب</span></div>
+                <div class="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20"><span class="block font-bold text-sm truncate text-purple-500">${mostAttended.name}</span><span class="text-xs">الأكثر حضوراً</span></div>
+                <div class="p-2 rounded-lg bg-pink-50 dark:bg-pink-900/20"><span class="block font-bold text-sm truncate text-pink-500">${mostAbsent.name}</span><span class="text-xs">الأكثر غياباً</span></div>
+            `;
+
             const ctx = document.getElementById('attendance-chart').getContext('2d');
             if (attendanceChart) attendanceChart.destroy();
+            Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#6b7280';
             attendanceChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [
-                        {
-                            label: 'حضور',
-                            data: labels.map(l => stats[l].attended),
-                            backgroundColor: labels.map(l => subjectColors[l] || '#cccccc'),
-                            borderColor: '#22c55e',
-                            borderWidth: 2,
-                            borderRadius: 3,
-                        },
-                        {
-                            label: 'غياب',
-                            data: labels.map(l => stats[l].absent),
-                            backgroundColor: labels.map(l => subjectColors[l] || '#cccccc'),
-                            borderColor: '#ef4444',
-                            borderWidth: 2,
-                            borderRadius: 3,
-                        }
+                        { label: 'حضور', data: labels.map(l => stats[l].attended), backgroundColor: labels.map(l => subjectColors[l]?.base || '#22c55e'), borderRadius: 4 },
+                        { label: 'غياب', data: labels.map(l => stats[l].absent), backgroundColor: labels.map(l => subjectColors[l]?.base || '#ef4444'), borderRadius: 4, hidden: true }
                     ]
                 },
                 options: {
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { display: false } },
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(128, 128, 128, 0.2)' } }
                     },
                     responsive: true,
                     maintainAspectRatio: false,
@@ -456,14 +658,41 @@
             const legendContainer = document.getElementById('chart-legend');
             legendContainer.innerHTML = '';
             labels.forEach(label => {
-                const color = subjectColors[label] || '#a1a1aa';
+                const color = subjectColors[label]?.base || '#a1a1aa';
                 const legendItem = document.createElement('div');
                 legendItem.className = 'flex items-center gap-2';
-                legendItem.innerHTML = `<span class="w-4 h-4 rounded-full" style="background-color: ${color};"></span><span class="font-semibold text-sm text-gray-700">${label}</span>`;
+                legendItem.innerHTML = `<span class="w-4 h-4 rounded-full" style="background-color: ${color};"></span><span class="font-semibold text-sm">${label}</span>`;
                 legendContainer.appendChild(legendItem);
             });
         }
         
+        function formatTimeDifference(diffMillis, isNextLesson = false) {
+            const diffSeconds = Math.abs(diffMillis / 1000);
+            const diffMinutes = Math.floor(diffSeconds / 60);
+            const diffHours = Math.floor(diffMinutes / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            const hours = diffHours % 24;
+            const minutes = diffMinutes % 60;
+
+            if (isNextLesson) {
+                let parts = [];
+                if (diffDays > 0) parts.push(`<div class="text-center"><span class="text-2xl lg:text-3xl font-bold">${diffDays}</span><span class="text-xs block">يوم</span></div>`);
+                if (hours > 0) parts.push(`<div class="text-center"><span class="text-2xl lg:text-3xl font-bold">${hours}</span><span class="text-xs block">ساعة</span></div>`);
+                if (minutes > 0) parts.push(`<div class="text-center"><span class="text-2xl lg:text-3xl font-bold">${minutes}</span><span class="text-xs block">دقيقة</span></div>`);
+                
+                if (parts.length === 0) return `<div class="text-center mt-2 text-lg font-bold text-blue-700 dark:text-blue-400">يبدأ الآن</div>`;
+                
+                return `<div class="mt-2 text-blue-700 dark:text-blue-400 flex items-center justify-center gap-x-4 gap-y-2">${parts.join('<div class="text-2xl font-bold">:</div>')}</div>`;
+            }
+            
+            const prefix = diffMillis < 0 ? "فات منذ" : "يبدأ خلال";
+            if (diffDays > 0) return `${prefix} ${diffDays} يوم و ${hours} ساعة`;
+            if (hours > 0) return `${prefix} ${hours} ساعة و ${minutes} دقيقة`;
+            if (minutes > 0) return `${prefix} ${minutes} دقيقة`;
+            return "يبدأ الآن";
+        }
+
         async function updateTodayLessonsStatus() {
             const now = new Date();
             const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
@@ -471,7 +700,7 @@
 
             const container = document.getElementById('today-lessons-container');
             if (todayLessons.length === 0) {
-                container.innerHTML = `<p class="text-slate-500 text-center p-4">لا توجد دروس اليوم. يوم راحة!</p>`;
+                container.innerHTML = `<p class="text-slate-500 dark:text-slate-400 text-center p-4">لا توجد دروس اليوم. يوم راحة!</p>`;
                 return;
             }
 
@@ -484,23 +713,42 @@
             let nextLessonFound = false;
             container.innerHTML = todayLessons.map(lesson => {
                 const timeStr = lesson.date.toLocaleTimeString('ar-EG', { hour: 'numeric', minute: 'numeric' });
-                let statusHtml = '', statusClass = 'bg-gray-100';
+                const diffMillis = lesson.date.getTime() - now.getTime();
+                
+                let statusHtml = '';
+                let statusClass = '';
+                let timeDetailsHtml = '';
                 const record = attendanceRecords.get(lesson.subject);
+                const isDark = document.documentElement.classList.contains('dark');
+                const subjectColor = subjectColors[lesson.subject] ? (isDark ? subjectColors[lesson.subject].dark : subjectColors[lesson.subject].light) : (isDark ? 'var(--bg-tertiary)' : '#e2e8f0');
 
                 if (record) {
                     statusHtml = `<p class="font-bold ${record.status === 'attended' ? 'text-green-600' : 'text-red-600'}">${record.status === 'attended' ? 'تم الحضور' : 'غياب'}</p>`;
-                } else if (lesson.date < now) {
-                    statusClass = 'bg-yellow-100 text-yellow-700';
-                    statusHtml = `<p class="text-sm font-semibold">فات ولم يسجل</p>`;
+                    statusClass = `border-r-4 ${record.status === 'attended' ? 'border-green-500' : 'border-red-500'}`;
+                } else if (diffMillis < 0) {
+                    statusClass = 'opacity-70';
+                    statusHtml = `<p class="text-sm font-semibold text-yellow-600 dark:text-yellow-400">فات ولم يسجل</p>`;
+                    timeDetailsHtml = `<p class="text-xs text-center mt-2 font-mono text-red-500">${formatTimeDifference(diffMillis)}</p>`;
                 } else if (!nextLessonFound) {
-                    statusClass = 'bg-blue-100 text-blue-800 ring-2 ring-blue-500';
-                    statusHtml = `<p class="font-bold">الدرس القادم</p>`;
+                    statusClass = 'ring-2 ring-blue-500';
+                    statusHtml = `<p class="font-bold text-blue-700 dark:text-blue-300">الدرس القادم</p>`;
+                    timeDetailsHtml = formatTimeDifference(diffMillis, true);
                     nextLessonFound = true;
                 } else {
-                    statusHtml = `<p class="text-sm text-gray-500">قادم</p>`;
+                    statusHtml = `<p class="text-sm text-gray-500 dark:text-gray-400">قادم</p>`;
+                    timeDetailsHtml = `<p class="text-xs text-center mt-2 font-mono text-slate-500">${formatTimeDifference(diffMillis)}</p>`;
                 }
                 
-                return `<div class="p-3 rounded-lg ${statusClass}"><div class="flex justify-between items-center"><div><h3 class="font-semibold">${lesson.subject}</h3><p class="text-sm">مع ${lesson.teacher} - الساعة ${timeStr}</p></div><div class="text-left">${statusHtml}</div></div></div>`;
+                return `<div class="p-3 rounded-lg ${statusClass} transition-all duration-300" style="background-color: ${record ? subjectColor : ''}">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h3 class="font-semibold">${lesson.subject}</h3>
+                                    <p class="text-sm">مع ${lesson.teacher} - الساعة ${timeStr}</p>
+                                </div>
+                                <div class="text-right">${statusHtml}</div>
+                            </div>
+                            ${timeDetailsHtml}
+                        </div>`;
             }).join('');
         }
         
@@ -511,30 +759,381 @@
             const tomorrowLessons = scheduleData.filter(l => l.days.includes(tomorrowDayName) && l.time).sort((a, b) => a.time.localeCompare(b.time));
             const listContainer = document.getElementById('tomorrow-lessons-list');
             if (tomorrowLessons.length === 0) {
-                listContainer.innerHTML = `<p class="text-slate-500">لا توجد دروس غداً. يوم راحة!</p>`;
+                listContainer.innerHTML = `<p class="text-slate-500 dark:text-slate-400">لا توجد دروس غداً. يوم راحة!</p>`;
             } else {
-                listContainer.innerHTML = tomorrowLessons.map(lesson => `<div class="p-3 rounded-lg bg-slate-100"><h4 class="font-semibold">${lesson.subject}</h4><p class="text-sm">مع ${lesson.teacher} - الساعة ${new Date('1970-01-01T' + lesson.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'})}</p></div>`).join('');
+                listContainer.innerHTML = tomorrowLessons.map(lesson => `<div class="p-3 rounded-lg bg-slate-100 dark:bg-slate-800"><h4 class="font-semibold">${lesson.subject}</h4><p class="text-sm">مع ${lesson.teacher} - الساعة ${new Date('1970-01-01T' + lesson.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'})}</p></div>`).join('');
             }
             document.getElementById('tomorrow-modal').classList.add('visible');
         }
         
         function displayFullSchedule(container) {
-            container.innerHTML = scheduleData.map(lesson => `<div class="bg-slate-50 p-3 rounded-lg border border-slate-200"><h3 class="font-semibold text-blue-700">${lesson.subject}</h3><p class="text-sm text-slate-600">المواعيد: ${lesson.days.join(' و ') || 'غير محدد'} - ${lesson.time ? new Date('1970-01-01T' + lesson.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'}) : 'غير محدد'}</p><p class="text-xs text-slate-500">المعلم: ${lesson.teacher}</p></div>`).join('');
+            container.innerHTML = scheduleData.map(lesson => `<div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700"><h3 class="font-semibold text-blue-700 dark:text-blue-400">${lesson.subject}</h3><p class="text-sm text-slate-600 dark:text-slate-400">المواعيد: ${lesson.days.join(' و ') || 'غير محدد'} - ${lesson.time ? new Date('1970-01-01T' + lesson.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'}) : 'غير محدد'}</p><p class="text-xs text-slate-500">المعلم: ${lesson.teacher}</p></div>`).join('');
+        }
+
+        // --- FINANCIALS ---
+        async function initializeFinancialsPage() {
+            document.getElementById('page-financials').addEventListener('click', async (e) => {
+                if (e.target.closest('#toggle-financials-btn')) {
+                    const btn = e.target.closest('#toggle-financials-btn');
+                    const icon = btn.querySelector('svg');
+                    const content = document.getElementById('financials-list-container');
+                    content.classList.toggle('collapsed');
+                    icon.classList.toggle('collapsed');
+                }
+                if (e.target.closest('.toggle-month-btn')) {
+                    const btn = e.target.closest('.toggle-month-btn');
+                    const content = document.getElementById(`month-content-${btn.dataset.monthId}`);
+                    content.classList.toggle('collapsed');
+                    btn.querySelector('svg').classList.toggle('collapsed');
+                }
+                if (e.target.classList.contains('save-price-btn')) {
+                    const subject = e.target.dataset.subject;
+                    const input = document.getElementById(`price-input-${subject.replace(/\s/g, '-')}`);
+                    const price = parseFloat(input.value);
+                    if (!isNaN(price) && price >= 0) {
+                        await savePrice(subject, price);
+                        e.target.textContent = 'تم الحفظ!';
+                        setTimeout(() => e.target.textContent = 'حفظ', 2000);
+                    } else {
+                        alert('الرجاء إدخال سعر صحيح.');
+                    }
+                }
+                if (e.target.classList.contains('mark-paid-btn')) {
+                    const subject = e.target.dataset.subject;
+                    const amount = parseFloat(e.target.dataset.amount);
+                    const teacher = e.target.dataset.teacher;
+                    const year = parseInt(e.target.dataset.year);
+                    const month = parseInt(e.target.dataset.month);
+                    await markAsPaid(subject, teacher, amount, year, month);
+                }
+                if (e.target.classList.contains('cancel-paid-btn')) {
+                    const docId = e.target.dataset.docId;
+                    await cancelPayment(docId);
+                }
+                if (e.target.closest('.delete-month-btn')) {
+                    const btn = e.target.closest('.delete-month-btn');
+                    const year = parseInt(btn.dataset.year);
+                    const month = parseInt(btn.dataset.month);
+                    const monthName = new Date(year, month).toLocaleString('ar-EG', { month: 'long' });
+                    showConfirmationModal(`هل أنت متأكد من حذف سجلات شهر ${monthName} ${year}؟`, () => {
+                        deleteFinancialMonth(year, month);
+                    });
+                }
+            });
+        }
+
+        async function displayFinancials() {
+            const container = document.getElementById('financials-list');
+            container.innerHTML = '<p>جاري تحميل البيانات المالية...</p>';
+            let html = '';
+            for (const lesson of scheduleData.filter(l => l.time)) {
+                const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
+                const docSnap = await getDoc(financialDocRef);
+                const price = docSnap.exists() ? docSnap.data().price : 0;
+                
+                html += `
+                    <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border dark:border-slate-700 flex flex-col md:flex-row justify-between items-center gap-3">
+                        <div>
+                            <h3 class="font-semibold text-blue-700 dark:text-blue-400">${lesson.subject}</h3>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">المعلم: ${lesson.teacher}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="price-input-${lesson.subject.replace(/\s/g, '-')}" value="${price}" class="w-24 p-1 border rounded-md text-center bg-transparent dark:border-slate-600" placeholder="السعر">
+                            <span class="font-semibold text-slate-500">جنيه</span>
+                            <button data-subject="${lesson.subject}" class="save-price-btn bg-green-500 text-white px-3 py-1 rounded-md text-sm">حفظ</button>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        async function savePrice(subject, price) {
+            const financialDocRef = doc(db, "users", userData.id, "financials", subject);
+            await setDoc(financialDocRef, { price: price }, { merge: true });
+            await renderPaymentHistoryForDate(financialDisplayDate); 
+        }
+
+        async function renderPaymentHistoryForDate(date) {
+            const paymentHistorySection = document.getElementById('payment-history-section');
+            paymentHistorySection.innerHTML = '<p>جاري تحميل سجل المدفوعات...</p>';
+            
+            const recycleBinRef = collection(db, "users", userData.id, "recycleBin");
+            const recycleBinSnapshot = await getDocs(recycleBinRef);
+            const deletedMonths = new Set(recycleBinSnapshot.docs.map(d => d.id));
+
+            const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+            let monthsToRender = [];
+            if (!deletedMonths.has(`${firstOfMonth.getFullYear()}-${firstOfMonth.getMonth()}`)) {
+                monthsToRender.push(firstOfMonth);
+            }
+
+            const prevMonth = new Date(firstOfMonth);
+            prevMonth.setMonth(prevMonth.getMonth() - 1);
+            const prevMonthId = `${prevMonth.getFullYear()}-${prevMonth.getMonth()}`;
+            if (!deletedMonths.has(prevMonthId)) {
+                const isPrevMonthPaid = await areAllPaidForMonth(prevMonth.getFullYear(), prevMonth.getMonth());
+                if (!isPrevMonthPaid) {
+                    monthsToRender.unshift(prevMonth);
+                }
+            }
+
+            let finalHtml = '';
+            for (const monthDate of monthsToRender) {
+                finalHtml += await generateMonthPaymentHTML(monthDate);
+            }
+            paymentHistorySection.innerHTML = finalHtml || '<p class="text-center text-slate-500 p-4">لا توجد سجلات مالية لعرضها.</p>';
+        }
+
+        async function areAllPaidForMonth(year, month) {
+            const historyRef = collection(db, "users", userData.id, "paymentHistory");
+            const q = query(historyRef, where("year", "==", year), where("month", "==", month));
+            const querySnapshot = await getDocs(q);
+            const paidSubjects = new Set(querySnapshot.docs.map(d => d.data().subject));
+            
+            for (const lesson of scheduleData.filter(l => l.time)) {
+                const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
+                const docSnap = await getDoc(financialDocRef);
+                const price = docSnap.exists() ? docSnap.data().price : 0;
+                if (price > 0 && !paidSubjects.has(lesson.subject)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        async function generateMonthPaymentHTML(date) {
+            const month = date.getMonth();
+            const year = date.getFullYear();
+            const monthId = `${year}-${month}`;
+            const isFullyPaid = await areAllPaidForMonth(year, month);
+            const isCollapsed = isFullyPaid ? 'collapsed' : '';
+
+            const historyRef = collection(db, "users", userData.id, "paymentHistory");
+            const q = query(historyRef, where("year", "==", year), where("month", "==", month), orderBy("paidDate", "desc"), limit(1));
+            const lastPaymentSnapshot = await getDocs(q);
+            const lastPaymentDate = lastPaymentSnapshot.empty ? '' : `آخر دفعة: ${lastPaymentSnapshot.docs[0].data().paidDate.toDate().toLocaleDateString('ar-EG')}`;
+
+            let listHtml = '';
+            const paidRecords = new Map( (await getDocs(query(historyRef, where("year", "==", year), where("month", "==", month)))).docs.map(d => [d.data().subject, {id: d.id, ...d.data()}]) );
+            
+            for (const lesson of scheduleData.filter(l => l.time)) {
+                const paidRecord = paidRecords.get(lesson.subject);
+                const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
+                const docSnap = await getDoc(financialDocRef);
+                const price = docSnap.exists() ? docSnap.data().price : 0;
+
+                if (paidRecord) {
+                     listHtml += `<div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-500/30 flex justify-between items-center"><div><h4 class="font-semibold">${lesson.subject}</h4><p class="text-sm text-green-600 dark:text-green-400 font-bold">تم دفع ${paidRecord.amount} جنيه</p><p class="text-xs text-slate-500 dark:text-slate-400">بتاريخ ${paidRecord.paidDate.toDate().toLocaleDateString('ar-EG')}</p></div><button data-doc-id="${paidRecord.id}" class="cancel-paid-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm">إلغاء</button></div>`;
+                } else {
+                     listHtml += `<div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border dark:border-slate-700 flex justify-between items-center"><div><h4 class="font-semibold">${lesson.subject}</h4><p class="text-sm ${price > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500'} font-bold">${price > 0 ? `مستحق: ${price} جنيه` : 'لم يحدد السعر'}</p></div>${price > 0 ? `<button data-subject="${lesson.subject}" data-teacher="${lesson.teacher}" data-amount="${price}" data-year="${year}" data-month="${month}" class="mark-paid-btn bg-blue-500 text-white px-3 py-1 rounded-md text-sm">تسجيل</button>` : ''}</div>`;
+                }
+            }
+
+            return `
+                <div class="card p-4 md:p-6 rounded-lg shadow-lg mt-8" id="month-card-${monthId}">
+                    <div class="flex justify-between items-center mb-4 border-b-2 dark:border-slate-700 pb-2">
+                        <div class="flex-grow cursor-pointer toggle-month-btn" data-month-id="${monthId}">
+                            <h2 class="text-xl md:text-2xl font-bold">${date.toLocaleString('ar-EG', { month: 'long' })} ${year}</h2>
+                            ${isFullyPaid ? `<p class="text-xs text-green-500">${lastPaymentDate}</p>` : ''}
+                        </div>
+                        <div class="flex items-center">
+                            <button data-year="${year}" data-month="${month}" class="delete-month-btn text-red-400 hover:text-red-600 p-2 rounded-full" title="حذف الشهر">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <button class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 toggle-month-btn" data-month-id="${monthId}">
+                                <svg class="collapse-icon h-5 w-5 pointer-events-none ${isCollapsed}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="month-content-${monthId}" class="collapsible-content space-y-2 ${isCollapsed}">
+                        ${listHtml || '<p class="text-center p-4 text-slate-500 dark:text-slate-400">لا توجد سجلات لهذا الشهر.</p>'}
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function markAsPaid(subject, teacher, amount, year, month) {
+             showConfirmationModal(`هل أنت متأكد من تسجيل مبلغ ${amount} جنيه لمادة ${subject} كمدفوع؟`, async () => {
+                const docId = `${year}-${month}-${subject.replace(/\s/g, '_')}`;
+                const historyRef = doc(db, "users", userData.id, "paymentHistory", docId);
+                await setDoc(historyRef, {
+                    subject: subject,
+                    teacher: teacher,
+                    amount: amount,
+                    paidDate: new Date(),
+                    month: month,
+                    year: year
+                });
+                await renderPaymentHistoryForDate(new Date(year, month, 1));
+                sendNotification('تم تسجيل الدفع', `تم تسجيل دفع مبلغ ${amount} جنيه لمادة ${subject} بنجاح.`);
+            });
+        }
+        
+        async function cancelPayment(docId) {
+            showConfirmationModal('هل أنت متأكد من إلغاء هذا الدفع؟', async () => {
+                const docRef = doc(db, "users", userData.id, "paymentHistory", docId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const { year, month } = docSnap.data();
+                    await deleteDoc(docRef);
+                    await renderPaymentHistoryForDate(new Date(year, month, 1));
+                    sendNotification('تم إلغاء الدفع', 'تم إلغاء تسجيل الدفع بنجاح.');
+                }
+            });
+        }
+
+        async function deleteFinancialMonth(year, month) {
+            const monthId = `${year}-${month}`;
+            const paymentsQuery = query(collection(db, "users", userData.id, "paymentHistory"), where("year", "==", year), where("month", "==", month));
+            const paymentsSnapshot = await getDocs(paymentsQuery);
+
+            const paymentsData = paymentsSnapshot.docs.map(d => ({ ...d.data(), originalId: d.id, paidDate: d.data().paidDate.toMillis() }));
+            
+            const recycleBinRef = doc(db, "users", userData.id, "recycleBin", monthId);
+            await setDoc(recycleBinRef, {
+                year,
+                month,
+                deletedAt: new Date(),
+                payments: paymentsData
+            });
+
+            if (!paymentsSnapshot.empty) {
+                const batch = writeBatch(db);
+                paymentsSnapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+            }
+
+            const monthCard = document.getElementById(`month-card-${monthId}`);
+            if(monthCard) monthCard.remove();
+            const monthName = new Date(year, month).toLocaleString('ar-EG', { month: 'long' });
+            sendNotification('تم الحذف', `تم نقل سجلات شهر ${monthName} إلى سلة المحذوفات.`);
+        }
+
+        async function renderRecycleBin() {
+            const container = document.getElementById('recycle-bin-container');
+            if (!container) return;
+            container.innerHTML = '<p class="text-center p-2">جاري تحميل سلة المحذوفات...</p>';
+            const recycleBinRef = collection(db, "users", userData.id, "recycleBin");
+            const q = query(recycleBinRef, orderBy("deletedAt", "desc"));
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-xs text-slate-500 text-center p-2">سلة المحذوفات فارغة.</p>';
+                return;
+            }
+
+            container.innerHTML = snapshot.docs.map(doc => {
+                const data = doc.data();
+                const monthId = doc.id;
+                const monthName = new Date(data.year, data.month).toLocaleString('ar-EG', { month: 'long', year: 'numeric' });
+                const deletedDate = data.deletedAt.toDate().toLocaleDateString('ar-EG');
+                return `
+                    <div class="bg-slate-200 dark:bg-slate-700 p-2 rounded-md flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold">${monthName}</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">حُذفت بتاريخ: ${deletedDate}</p>
+                        </div>
+                        <button data-month-id="${monthId}" class="restore-month-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-sm">استرجاع</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function restoreFinancialMonth(monthId) {
+            const recycleBinDocRef = doc(db, "users", userData.id, "recycleBin", monthId);
+            const docSnap = await getDoc(recycleBinDocRef);
+
+            if (!docSnap.exists()) {
+                console.error("Document to restore not found in recycle bin.");
+                return;
+            }
+
+            const dataToRestore = docSnap.data();
+            const payments = dataToRestore.payments;
+
+            const batch = writeBatch(db);
+            
+            payments.forEach(paymentData => {
+                const originalId = paymentData.originalId;
+                const paidDate = Timestamp.fromMillis(paymentData.paidDate);
+                delete paymentData.originalId; 
+                const newDocRef = doc(db, "users", userData.id, "paymentHistory", originalId);
+                batch.set(newDocRef, { ...paymentData, paidDate });
+            });
+
+            batch.delete(recycleBinDocRef);
+            await batch.commit();
+
+            await renderRecycleBin();
+            if (document.querySelector('.page-content.active')?.id === 'page-financials') {
+                await renderPaymentHistoryForDate(financialDisplayDate);
+            }
+            const monthName = new Date(dataToRestore.year, dataToRestore.month).toLocaleString('ar-EG', { month: 'long' });
+            sendNotification('تم الاسترجاع', `تم استرجاع سجلات شهر ${monthName} بنجاح.`);
+        }
+
+        async function checkDailyPaymentReminders() {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const notificationKey = `daily_payment_reminder_${todayStr}`;
+
+            if (localStorage.getItem(notificationKey)) return;
+
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            
+            const historyRef = collection(db, "users", userData.id, "paymentHistory");
+            const q = query(historyRef, where("year", "==", currentYear), where("month", "==", currentMonth));
+            const querySnapshot = await getDocs(q);
+            const paidSubjects = new Set(querySnapshot.docs.map(d => d.data().subject));
+
+            let unpaidSubjects = [];
+            for (const lesson of scheduleData.filter(l => l.time)) {
+                const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
+                const docSnap = await getDoc(financialDocRef);
+                const price = docSnap.exists() ? docSnap.data().price : 0;
+
+                if (price > 0 && !paidSubjects.has(lesson.subject)) {
+                    unpaidSubjects.push(lesson.subject);
+                }
+            }
+
+            if (unpaidSubjects.length > 0) {
+                sendNotification('تذكير يومي بالمصروفات', `لا تنس دفع مصروفات: ${unpaidSubjects.join(', ')}`);
+                localStorage.setItem(notificationKey, 'sent');
+            }
         }
 
         function initializePomodoro() {
             let interval;
-            let workTime = 1500, shortBreakTime = 300, longBreakTime = 900;
-            let timeLeft = workTime;
-            let totalTime = workTime;
-            let mode = 'work';
-            let isPaused = true;
+            let workTime, shortBreakTime, longBreakTime;
+            let timeLeft, totalTime, mode, isPaused;
+
             const timeDisplay = document.getElementById('pomodoro-time');
             const progressCircle = document.getElementById('pomodoro-progress-circle');
             const statusDisplay = document.getElementById('pomodoro-status');
             const startBtn = document.getElementById('pomodoro-start');
             const pauseBtn = document.getElementById('pomodoro-pause');
             const resetBtn = document.getElementById('pomodoro-reset');
+            const workInput = document.getElementById('work-time-input');
+            const shortInput = document.getElementById('short-break-input');
+            const longInput = document.getElementById('long-break-input');
+            const saveBtn = document.getElementById('save-pomodoro-settings');
+
+            function loadSettings() {
+                const settings = JSON.parse(localStorage.getItem('pomodoroSettings')) || {};
+                workTime = (settings.work || 25) * 60;
+                shortBreakTime = (settings.short || 5) * 60;
+                longBreakTime = (settings.long || 15) * 60;
+                workInput.value = workTime / 60;
+                shortInput.value = shortBreakTime / 60;
+                longInput.value = longBreakTime / 60;
+            }
 
             const updateDisplay = () => {
                 const minutes = Math.floor(timeLeft / 60);
@@ -549,14 +1148,14 @@
                 isPaused = true;
                 startBtn.classList.remove('hidden');
                 pauseBtn.classList.add('hidden');
+                mode = 'work';
                 timeLeft = workTime;
                 totalTime = workTime;
-                mode = 'work';
                 statusDisplay.textContent = 'وقت التركيز';
                 progressCircle.setAttribute('class', 'pomodoro-progress text-red-500');
                 updateDisplay();
             };
-
+            
             const switchMode = (newMode) => {
                 mode = newMode;
                 const modes = {
@@ -564,15 +1163,18 @@
                     short: { time: shortBreakTime, text: 'استراحة قصيرة', color: 'text-green-500' },
                     long: { time: longBreakTime, text: 'استراحة طويلة', color: 'text-blue-500' }
                 };
-                resetTimer(); // Reset first
-                timeLeft = modes[mode].time; // Then set new time
+                timeLeft = modes[mode].time;
                 totalTime = modes[mode].time;
                 statusDisplay.textContent = modes[mode].text;
                 progressCircle.setAttribute('class', `pomodoro-progress ${modes[mode].color}`);
                 updateDisplay();
+                startTimer();
             };
 
             const startTimer = () => {
+                if(isPaused) {
+                    sendNotification('مؤقت بومودورو بدأ!', `حان وقت ${statusDisplay.textContent}.`);
+                }
                 isPaused = false;
                 startBtn.classList.add('hidden');
                 pauseBtn.classList.remove('hidden');
@@ -582,6 +1184,7 @@
                     if (timeLeft < 0) {
                         clearInterval(interval);
                         new Tone.Synth().toDestination().triggerAttackRelease("C5", "0.5");
+                        sendNotification('انتهى الوقت!', `انتهى وقت ${statusDisplay.textContent}.`);
                         switchMode(mode === 'work' ? 'short' : 'work');
                     }
                 }, 1000);
@@ -597,39 +1200,97 @@
             startBtn.addEventListener('click', startTimer);
             pauseBtn.addEventListener('click', pauseTimer);
             resetBtn.addEventListener('click', resetTimer);
+
+            saveBtn.addEventListener('click', () => {
+                const settings = {
+                    work: workInput.value,
+                    short: shortInput.value,
+                    long: longInput.value
+                };
+                localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+                loadSettings();
+                resetTimer();
+                alert('تم حفظ إعدادات بومودورو!');
+            });
             
-            updateDisplay();
+            loadSettings();
+            resetTimer();
         }
 
         async function initializeTodoList() {
             const taskForm = document.getElementById('task-form');
             const taskInput = document.getElementById('task-input');
+            const taskDueTime = document.getElementById('task-due-time');
+            const taskPriority = document.getElementById('task-priority');
             const taskList = document.getElementById('task-list');
+            const taskFilter = document.getElementById('task-filter');
             const tasksRef = collection(db, "users", userData.id, "tasks");
+
+            const priorityMap = {
+                high: { text: 'عالية', color: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300', ring: 'ring-red-500' },
+                medium: { text: 'متوسطة', color: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300', ring: 'ring-yellow-500' },
+                low: { text: 'منخفضة', color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300', ring: 'ring-blue-500' }
+            };
 
             const renderTasks = async () => {
                 taskList.innerHTML = '';
                 const q = query(tasksRef, orderBy("createdAt", "desc"));
                 const querySnapshot = await getDocs(q);
                 if (querySnapshot.empty) {
-                    taskList.innerHTML = '<p class="text-slate-500 text-center p-4">لا توجد مهام حالياً. أضف مهمة جديدة لتبدأ!</p>';
-                } else {
-                    querySnapshot.forEach(doc => {
-                        const task = doc.data();
-                        const taskEl = document.createElement('div');
-                        taskEl.className = `task-item flex items-center justify-between p-3 rounded-lg ${task.completed ? 'bg-green-50' : 'bg-slate-50'}`;
-                        taskEl.innerHTML = `<label class="flex items-center gap-3"><input type="checkbox" data-id="${doc.id}" class="form-checkbox h-5 w-5 text-yellow-500 rounded" ${task.completed ? 'checked' : ''}><span class="text-slate-800">${task.text}</span></label><button data-id="${doc.id}" class="delete-task-btn text-red-400 hover:text-red-600 font-bold text-xl">&times;</button>`;
-                        taskList.appendChild(taskEl);
-                    });
+                    taskList.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center p-4">لا توجد مهام حالياً.</p>';
+                    return;
                 }
+                
+                let tasks = [];
+                querySnapshot.forEach(doc => tasks.push({ id: doc.id, ...doc.data() }));
+
+                const filterValue = taskFilter.value;
+                if (filterValue === 'pending') tasks = tasks.filter(t => !t.completed);
+                if (filterValue === 'completed') tasks = tasks.filter(t => t.completed);
+
+                tasks.forEach(task => {
+                    const priority = priorityMap[task.priority] || priorityMap.medium;
+                    const dueDate = task.dueDate ? new Date(task.dueDate.seconds * 1000).toLocaleString('ar-EG', { day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' }) : '';
+                    const isOverdue = task.dueDate && !task.completed && new Date(task.dueDate.seconds * 1000) < new Date();
+
+                    const taskEl = document.createElement('div');
+                    taskEl.className = `task-item flex items-center justify-between p-3 rounded-lg transition-colors ${task.completed ? 'bg-green-50 dark:bg-green-900/20 opacity-60' : 'bg-slate-50 dark:bg-slate-800'}`;
+                    taskEl.innerHTML = `
+                        <div class="flex items-center gap-3 flex-grow">
+                            <input type="checkbox" data-id="${task.id}" class="form-checkbox h-5 w-5 text-yellow-500 rounded bg-transparent flex-shrink-0" ${task.completed ? 'checked' : ''}>
+                            <div class="flex-grow">
+                                <p class="text-slate-800 dark:text-slate-200 ${task.completed ? 'line-through' : ''}">${task.text}</p>
+                                <div class="flex items-center gap-2 text-xs mt-1">
+                                    ${dueDate ? `<span class="${isOverdue ? 'text-red-500 font-bold' : 'text-slate-500 dark:text-slate-400'}">${dueDate}</span>` : ''}
+                                    <span class="px-2 py-0.5 rounded-full text-xs ${priority.color}">${priority.text}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button data-id="${task.id}" class="delete-task-btn text-red-400 hover:text-red-600 font-bold text-xl flex-shrink-0">&times;</button>
+                    `;
+                    taskList.appendChild(taskEl);
+                });
             };
 
             taskForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const text = taskInput.value.trim();
                 if (text) {
-                    await addDoc(tasksRef, { text, completed: false, createdAt: new Date() });
+                    let dueDate = null;
+                    if (taskDueTime.value) {
+                        const today = new Date();
+                        const [hours, minutes] = taskDueTime.value.split(':');
+                        dueDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes);
+                    }
+                    await addDoc(tasksRef, { 
+                        text, 
+                        completed: false, 
+                        createdAt: new Date(),
+                        dueDate: dueDate,
+                        priority: taskPriority.value 
+                    });
                     taskInput.value = '';
+                    taskDueTime.value = '';
                     renderTasks();
                 }
             });
@@ -645,25 +1306,58 @@
                     renderTasks();
                 }
             });
+            
+            taskFilter.addEventListener('change', renderTasks);
 
             await renderTasks();
         }
         
         function initializeSettings() {
+            const toggle = document.getElementById('dark-mode-toggle');
+
+            if (localStorage.getItem('theme') === 'dark') {
+                toggle.checked = true;
+            }
+
+            toggle.addEventListener('change', () => {
+                if (toggle.checked) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                }
+                if (document.getElementById('page-attendance-stats').classList.contains('active')) {
+                    updateAttendancePage();
+                }
+            });
+
+            document.getElementById('notification-permission-btn').addEventListener('click', requestNotificationPermission);
             document.getElementById('delete-attendance-btn').addEventListener('click', async () => {
-                showConfirmationModal('هل أنت متأكد من حذف جميع بيانات الحضور؟ هذا الإجراء لا يمكن التراجع عنه.', async () => {
+                showConfirmationModal('هل أنت متأكد من حذف جميع بيانات الحضور؟', async () => {
                     const attendanceRef = collection(db, "users", userData.id, "attendance");
                     const querySnapshot = await getDocs(attendanceRef);
                     const batch = writeBatch(db);
                     querySnapshot.forEach(doc => batch.delete(doc.ref));
                     await batch.commit();
-                    await updateAttendanceChart();
-                    await displayAttendanceHistory();
+                    await updateAttendancePage();
+                    if (!document.getElementById('attendance-history-container').classList.contains('hidden')) {
+                        await displayAttendanceHistory();
+                    }
                     alert('تم حذف جميع بيانات الحضور بنجاح.');
                 });
             });
+            
+            document.getElementById('page-settings').addEventListener('click', async (e) => {
+                if (e.target.closest('.restore-month-btn')) {
+                    const btn = e.target.closest('.restore-month-btn');
+                    const monthId = btn.dataset.monthId;
+                    restoreFinancialMonth(monthId);
+                }
+            });
         }
 
+        // --- AI ASSISTANT (CHAT) ---
         function initializeChat() {
             const chatInput = document.getElementById('chat-input');
             const sendButton = document.getElementById('send-button');
@@ -718,9 +1412,9 @@
             if (document.getElementById('chat-box').children.length === 0) {
                 showLoadingIndicator();
                 const modeName = document.querySelector(`.mode-button[data-mode="${mode}"]`).textContent;
-                const welcomePrompt = `رحب بسيف ترحيباً ودوداً ومختصراً لأنكم الآن في وضع "${modeName}".`;
+                const welcomePrompt = `رحب بـ ${userData.name} ترحيباً ودوداً ومختصراً لأنكم الآن في وضع "${modeName}".`;
                 try {
-                    const welcomeResponse = await getGeminiResponse(welcomePrompt, mode, [], true); 
+                    const welcomeResponse = await getGeminiResponse(welcomePrompt, mode, []); 
                     removeLoadingIndicator();
                     typeMessage(welcomeResponse, 'bot');
                     await saveMessageToHistory('model', welcomeResponse);
@@ -731,6 +1425,8 @@
         }
 
         async function sendMessage() {
+            localStorage.removeItem('ai_checkin_unanswered');
+
             const userMessage = document.getElementById('chat-input').value.trim();
             if (!userMessage) return;
             const currentMode = document.querySelector('.mode-button.active').dataset.mode || 'general';
@@ -755,11 +1451,12 @@
         }
         
         async function triggerAbsenceFollowUpAI(subject, reason) {
+            setActiveMode('general');
             document.querySelector('.sidebar-link[data-page="page-ai"]').click();
             showLoadingIndicator();
             let prompt = reason ? `لقد سجلت للتو غيابي عن درس ${subject} بسبب "${reason}". ابدأ محادثة داعمة معي.` : `لقد سجلت للتو غيابي عن درس ${subject}. اسألني بلطف عن سبب غيابي.`;
             try {
-                const response = await getGeminiResponse(prompt, 'general', [], true);
+                const response = await getGeminiResponse(prompt, 'general', []);
                 removeLoadingIndicator();
                 typeMessage(response, 'bot');
                 await saveMessageToHistory('model', response);
@@ -771,120 +1468,115 @@
         function handleAiError(error) {
             console.error("AI Error:", error);
             removeLoadingIndicator();
-            let friendlyMessage = 'عذراً، حدث خطأ أثناء التواصل مع المساعد الذكي.';
-            if (error.message === "ALL_KEYS_QUOTA_EXCEEDED") {
-                friendlyMessage = 'عذراً يا سيف، لقد وصلنا للحد الأقصى من استخدام المساعد الذكي اليوم. يمكنك المحاولة مرة أخرى لاحقاً.';
-            } else if (error.message.toLowerCase().includes("overloaded")) {
-                friendlyMessage = 'عذراً يا سيف، الخادم مشغول جداً الآن. لقد حاولنا عدة مرات، الرجاء المحاولة مرة أخرى بعد قليل.';
-            } else if (error.message.includes("quota")) {
-                friendlyMessage = 'عذراً يا سيف، لقد وصلنا للحد الأقصى من استخدام المساعد الذكي اليوم. حاول مرة أخرى لاحقاً.';
+            let friendlyMessage = 'عذراً، حدث خطأ أثناء التواصل مع المساعد الذكي. الرجاء التأكد من صحة مفتاح الواجهة البرمجية (API Key) في الكود.';
+            if (error.message.includes("quota")) {
+                friendlyMessage = 'عذراً، لقد وصلنا للحد الأقصى من استخدام المساعد الذكي اليوم. حاول مرة أخرى لاحقاً.';
             }
             addMessageToChat(friendlyMessage, 'bot');
         }
 
-        async function fetchWithBackoff(url, options, maxRetries = 3) {
-            let delay = 1000;
-            for (let i = 0; i < maxRetries; i++) {
-                const response = await fetch(url, options);
-                if (response.status === 429 || response.status === 503 || response.status === 500) {
-                    if (i === maxRetries - 1) return response; 
-                    console.warn(`API is busy. Retrying in ${delay / 1000}s... (Attempt ${i + 1})`);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2;
-                } else {
-                    return response;
-                }
-            }
-            return new Response(null, { status: 504, statusText: "Gateway Timeout after multiple retries." });
-        }
-
-        async function getGeminiResponse(prompt, mode, history, isSystemMessage = false) {
+        async function getGeminiResponse(prompt, mode, history) {
              const systemPrompt = await getSystemPrompt(mode);
-             const contents = isSystemMessage ? [
-                ...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] })),
-                { role: 'user', parts: [{ text: prompt }] }
-             ] : history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] }));
+             
+             const contents = history.map(h => ({ 
+                role: h.role === 'user' ? 'user' : 'model', 
+                parts: [{ text: h.text }] 
+             }));
+             contents.push({ role: 'user', parts: [{ text: prompt }]});
             
             const payload = { 
                 contents: contents,
                 system_instruction: { parts: [{ text: systemPrompt }] }
             };
 
-            const apiKey = GEMINI_API_KEY;
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-            const options = {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            };
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+            const options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
             
-            const response = await fetchWithBackoff(url, options);
+            const response = await fetch(url, options);
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({ error: { message: response.statusText } }));
-                const errorMessage = err?.error?.message?.toLowerCase() || '';
                 throw new Error(err?.error?.message || 'An unknown error occurred.');
             }
             const data = await response.json();
-            
             const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-            if (text && text.trim() !== "") {
-                return text;
-            } else {
-                console.warn("Received an empty or malformed response from the AI:", data);
-                return "عفواً، لم أتمكن من إنشاء رد. قد يكون السبب هو أن الطلب يخالف سياسات السلامة. حاول مرة أخرى بسؤال مختلف.";
-            }
+            if (text && text.trim() !== "") return text;
+            return "عفواً، لم أتمكن من إنشاء رد. قد يكون السبب هو أن الطلب يخالف سياسات السلامة.";
         }
         
         async function getSystemPrompt(mode) {
             const age = calculateAge(userData.birthDate);
-            const scheduleString = scheduleData.map(l => `${l.subject} (${l.days.join(',')}) الساعة ${l.time} مع ${l.teacher}`).join('; ');
+            const scheduleString = scheduleData.map(l => `${l.subject} (${l.days.join(',') || 'غير محدد'}) الساعة ${l.time || 'غير محدد'} مع ${l.teacher}`).join('; ');
             
-            // Fetch all attendance data for a complete summary
-            const attendanceRef = collection(db, "users", userData.id, "attendance");
-            const attendanceSnapshot = await getDocs(attendanceRef);
-            let attendanceSummary = "لا توجد سجلات حضور بعد.";
-            if (!attendanceSnapshot.empty) {
-                const stats = {};
-                scheduleData.forEach(l => {
-                    if(l.time) stats[l.subject] = { attended: 0, absent: 0 };
-                });
-                attendanceSnapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (stats[data.subject]) {
-                        if (data.status === 'attended') stats[data.subject].attended++;
-                        else if (data.status === 'absent') stats[data.subject].absent++;
-                    }
-                });
-                attendanceSummary = "ملخص الحضور والغياب:\n" + Object.entries(stats).map(([subject, counts]) => 
-                    `- ${subject}: ${counts.attended} حضور, ${counts.absent} غياب.`
-                ).join('\n');
-            }
+            const tasksString = await getTasksForPrompt();
+            const financialsString = await getFinancialsForPrompt();
+            const attendanceString = await getAttendanceForPrompt();
 
-            // Fetch all tasks
-            const tasksRef = collection(db, "users", userData.id, "tasks");
-            const tasksSnapshot = await getDocs(query(tasksRef, orderBy("createdAt")));
-            let tasksSummary = "لا توجد مهام حالياً.";
-            if(!tasksSnapshot.empty) {
-                tasksSummary = "قائمة المهام:\n" + tasksSnapshot.docs.map(doc => {
-                    const task = doc.data();
-                    return `- ${task.text} (الحالة: ${task.completed ? 'مكتملة' : 'غير مكتملة'})`;
-                }).join('\n');
-            }
+            const basePrompt = `أنت مساعد ذكي وصديق شخصي للطالب "${userData.name}". عمره ${age} سنة. تفاعل معه كصديق مقرب وداعم. كن ودوداً ومختصراً ومرحاً. لديك الآن الوصول إلى جميع معلوماته الحالية في التطبيق لتقديم مساعدة شخصية ودقيقة جداً:\n
+- **التاريخ والوقت الحالي:** ${new Date().toLocaleString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })}.
+- **جدوله الدراسي الكامل:** ${scheduleString}.
+- **قائمة مهامه الحالية:** ${tasksString}.
+- **ملخص مالي للشهر الحالي:** ${financialsString}.
+- **أحدث سجلات الحضور والغياب:** ${attendanceString}.
 
-            const basePrompt = `أنت مساعد ذكي وصديق للطالب سيف الدين. عمره ${age} سنة. تفاعل معه كصديق. كن ودوداً ومختصراً. لديك الآن الوصول إلى جميع معلوماته في التطبيق:\n\n1. جدوله الدراسي:\n${scheduleString}\n\n2. ${attendanceSummary}\n\n3. ${tasksSummary}\n\nاستخدم هذه المعلومات لتكون إجاباتك دقيقة وشخصية.`;
+استخدم هذه البيانات بشكل إبداعي في ردودك. مثلاً، إذا سألك عن واجب، تحقق من مهامه. إذا اشتكى من الإرهاق، انظر لجدوله. كن استباقياً وذكياً.`;
 
             const prompts = {
-                general: basePrompt,
-                arabic: `${basePrompt}\n\nأنت الآن في وضع "معلم لغة عربية". اشرح منهج الصف الثالث الإعدادي المصري لسيف.`,
-                english: `${basePrompt}\n\nأنت الآن في وضع "معلم لغة إنجليزية". أجب بالعربي مع شرح المصطلحات الإنجليزية.`,
-                science: `${basePrompt}\n\nأنت الآن في وضع "معلم علوم". بسّط منهج الصف الثالث الإعدادي المصري لسيف.`,
-                studies: `${basePrompt}\n\nأنت الآن في وضع "معلم دراسات اجتماعية". اشرح منهج الصف الثالث الإعدادي المصري لسيف.`,
-                math: `${basePrompt}\n\nأنت الآن في وضع "معلم رياضيات". اشرح منهج الصف الثالث الإعدادي المصري لسيف.`,
-                islamic: `${basePrompt}\n\nأنت الآن في وضع "معلم دين إسلامي". أجب على أسئلة سيف بشكل مبسط وحكيم.`
+                general: `${basePrompt}\n\n**مهمتك الحالية:** أنت في الوضع "العام". كن صديقه ومساعده الشخصي في كل شيء. ساعده في تنظيم وقته، وذكره بمهامه ودروسه، وقدم له الدعم والتشجيع.`,
+                arabic: `${basePrompt}\n\n**مهمتك الحالية:** أنت الآن "أستاذ فيصل"، معلم اللغة العربية الخبير. اشرح له أي شيء في منهج اللغة العربية للصف الثالث الإعدادي المصري بأسلوب شيق ومبسط. استخدم معرفتك بجدوله لتذكيره بمواعيد حصص اللغة العربية.`,
+                english: `${basePrompt}\n\n**مهمتك الحالية:** أنت الآن "Mr. Mahdi"، معلم اللغة الإنجليزية الرائع. أجب على أسئلته باللغة العربية مع شرح المصطلحات الإنجليزية الهامة. ساعده في الواجبات والقواعد.`,
+                science: `${basePrompt}\n\n**مهمتك الحالية:** أنت الآن "أستاذ بلال"، معلم العلوم الشغوف. بسّط له مفاهيم منهج العلوم للصف الثالث الإعدادي المصري باستخدام أمثلة من الحياة اليومية.`,
+                studies: `${basePrompt}\n\n**مهمتك الحالية:** أنت الآن "أستاذ أبو بكر"، معلم الدراسات الاجتماعية الحكيم. اجعل التاريخ والجغرافيا قصصاً ممتعة. اربط الأحداث ببعضها ووضح له أهميتها.`,
+                math: `${basePrompt}\n\n**مهمتك الحالية:** أنت الآن "أستاذ محمد"، عبقري الرياضيات. حل معه المسائل الصعبة خطوة بخطوة واشرح له النظريات بطريقة منطقية وسهلة.`,
+                islamic: `${basePrompt}\n\n**مهمتك الحالية:** أنت الآن "شيخ ومعلم دين إسلامي". أجب على أسئلته الدينية بشكل مبسط وحكيم، مع التركيز على الأخلاق والقيم الإسلامية السمحة.`
             };
             return prompts[mode] || prompts['general'];
+        }
+
+        async function getTasksForPrompt() {
+            const q = query(collection(db, "users", userData.id, "tasks"), orderBy("createdAt", "desc"));
+            const snapshot = await getDocs(q);
+            
+            const uncompletedTasks = snapshot.docs
+                .map(d => d.data())
+                .filter(task => !task.completed);
+
+            if (uncompletedTasks.length === 0) return "لا توجد مهام حالياً. وقت ممتاز للراحة أو المراجعة!";
+            
+            return uncompletedTasks.map(task => `- "${task.text}" (الأولوية: ${task.priority})`).join('\n');
+        }
+
+        async function getFinancialsForPrompt() {
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const historyRef = collection(db, "users", userData.id, "paymentHistory");
+            const q = query(historyRef, where("year", "==", year), where("month", "==", month));
+            const snapshot = await getDocs(q);
+            const paidSubjects = new Set(snapshot.docs.map(d => d.data().subject));
+            let unpaid = [];
+            for (const lesson of scheduleData.filter(l => l.time)) {
+                const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
+                const docSnap = await getDoc(financialDocRef);
+                const price = docSnap.exists() ? docSnap.data().price : 0;
+                if (price > 0 && !paidSubjects.has(lesson.subject)) {
+                    unpaid.push(`${lesson.subject} (${price} جنيه)`);
+                }
+            }
+            if (unpaid.length === 0) return "كل المصاريف مدفوعة هذا الشهر. عمل رائع!";
+            return `مواد لم تدفع بعد هذا الشهر: ${unpaid.join(', ')}.`;
+        }
+        
+        async function getAttendanceForPrompt() {
+            const q = query(collection(db, "users", userData.id, "attendance"), orderBy("timestamp", "desc"), limit(5));
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) return "لا توجد سجلات حضور بعد.";
+            return snapshot.docs.map(d => {
+                const data = d.data();
+                const status = data.status === 'attended' ? 'حضور' : 'غياب';
+                return `- ${data.subject}: ${status} بتاريخ ${data.timestamp.toDate().toLocaleDateString('ar-EG')}.`;
+            }).join('\n');
         }
 
         function addMessageToChat(message, sender) {
@@ -920,6 +1612,10 @@
         }
 
         function showLoadingIndicator() {
+            const chatBox = document.getElementById('chat-box');
+            let indicator = document.getElementById('loading-indicator');
+            if (indicator) return;
+
             const loadingBubble = document.createElement('div');
             loadingBubble.id = 'loading-indicator';
             loadingBubble.className = 'chat-bubble-bot self-start w-fit max-w-lg rounded-xl px-4 py-2 mb-2';
@@ -927,8 +1623,8 @@
             const messageContainer = document.createElement('div');
             messageContainer.className = 'flex justify-start';
             messageContainer.appendChild(loadingBubble);
-            document.getElementById('chat-box').appendChild(messageContainer);
-            document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+            chatBox.appendChild(messageContainer);
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         function removeLoadingIndicator() {
@@ -947,7 +1643,7 @@
 
         function showConfirmationModal(message, onConfirm) {
             const modal = document.getElementById('confirmation-modal');
-            modal.innerHTML = `<div class="modal-content"><p class="text-lg font-semibold mb-4">${message}</p><div class="flex justify-end gap-2"><button id="confirm-cancel" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-md">إلغاء</button><button id="confirm-ok" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">تأكيد</button></div></div>`;
+            modal.innerHTML = `<div class="modal-content"><p class="text-lg font-semibold mb-4">${message}</p><div class="flex justify-end gap-2"><button id="confirm-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500 rounded-md">إلغاء</button><button id="confirm-ok" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">تأكيد</button></div></div>`;
             modal.classList.add('visible');
             document.getElementById('confirm-ok').onclick = () => {
                 onConfirm();
