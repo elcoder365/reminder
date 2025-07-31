@@ -151,11 +151,11 @@
         
         const userData = { name: "سيف الدين", birthDate: "2011-03-19", id: "seif_eldeen_user" };
         const scheduleData = [
-            { subject: "اللغة العربية", teacher: "أستاذ فيصل", days: ["الاثنين", "الخميس"], time: "16:00" },
-            { subject: "اللغة الإنجليزية", teacher: "أستاذ مهدي", days: ["الأحد", "الأربعاء"], time: "16:15" },
-            { subject: "العلوم", teacher: "أستاذ بلال", days: ["الأحد", "الأربعاء"], time: "11:30" },
-            { subject: "الدراسات الاجتماعية", teacher: "أستاذ أبو بكر", days: ["الاثنين", "الخميس"], time: "18:00" },
-            { subject: "الرياضيات", teacher: "أستاذ محمد", days: [], time: "" },
+            { subject: "اللغة العربية", teacher: "أستاذ فيصل", schedule: [{day: "الاثنين", time: "16:00"}, {day: "الخميس", time: "16:00"}] },
+            { subject: "اللغة الإنجليزية", teacher: "أستاذ مهدي", schedule: [{day: "الأحد", time: "16:15"}, {day: "الأربعاء", time: "16:15"}] },
+            { subject: "العلوم", teacher: "أستاذ بلال", schedule: [{day: "الأحد", time: "11:30"}, {day: "الأربعاء", time: "11:30"}] },
+            { subject: "الدراسات الاجتماعية", teacher: "أستاذ أبو بكر", schedule: [{day: "الاثنين", time: "18:00"}, {day: "الخميس", time: "18:00"}] },
+            { subject: "الرياضيات", teacher: "أستاذ محمد", schedule: [{day: "السبت", time: "14:30"}, {day: "الثلاثاء", time: "15:30"}] },
         ];
         const dayMapping = { "الأحد": 0, "الاثنين": 1, "الثلاثاء": 2, "الأربعاء": 3, "الخميس": 4, "الجمعة": 5, "السبت": 6 };
         const subjectColors = { 
@@ -347,38 +347,40 @@
             const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
             
             scheduleData.forEach(lesson => {
-                if (lesson.days.includes(todayDayName) && lesson.time) {
-                    const [hours, minutes] = lesson.time.split(':');
-                    const lessonTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-                    const diffMinutes = (lessonTime.getTime() - now.getTime()) / 60000;
+                lesson.schedule.forEach(s => {
+                    if (s.day === todayDayName) {
+                        const [hours, minutes] = s.time.split(':');
+                        const lessonTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+                        const diffMinutes = (lessonTime.getTime() - now.getTime()) / 60000;
 
-                    const reminders = [
-                        { time: 30, text: "سيبدأ خلال 30 دقيقة", sound: true },
-                        { time: 15, text: "سيبدأ خلال 15 دقيقة" }, 
-                        { time: 5, text: "سيبدأ خلال 5 دقائق" }, 
-                        { time: 0, text: "قد بدأ الآن!" }
-                    ];
+                        const reminders = [
+                            { time: 30, text: "سيبدأ خلال 30 دقيقة", sound: true },
+                            { time: 15, text: "سيبدأ خلال 15 دقيقة" }, 
+                            { time: 5, text: "سيبدأ خلال 5 دقائق" }, 
+                            { time: 0, text: "قد بدأ الآن!" }
+                        ];
 
-                    reminders.forEach(r => {
-                        if (diffMinutes > r.time - 1 && diffMinutes <= r.time) {
-                            const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
-                            if (!localStorage.getItem(key)) {
-                                sendNotification(`تذكير بدرس ${lesson.subject}`, `الدرس ${r.text}`);
-                                if (r.sound) {
-                                    playAlarmSound();
-                                }
-                                localStorage.setItem(key, 'sent');
-                            }
-                        }
-                    });
-                     
-                    if (diffMinutes < -60) {
                         reminders.forEach(r => {
-                            const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
-                            localStorage.removeItem(key);
+                            if (diffMinutes > r.time - 1 && diffMinutes <= r.time) {
+                                const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
+                                if (!localStorage.getItem(key)) {
+                                    sendNotification(`تذكير بدرس ${lesson.subject}`, `الدرس ${r.text}`);
+                                    if (r.sound) {
+                                        playAlarmSound();
+                                    }
+                                    localStorage.setItem(key, 'sent');
+                                }
+                            }
                         });
+                        
+                        if (diffMinutes < -60) {
+                            reminders.forEach(r => {
+                                const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
+                                localStorage.removeItem(key);
+                            });
+                        }
                     }
-                }
+                });
             });
         }
         
@@ -478,8 +480,8 @@
                 return;
             }
 
-            const performLog = (reason = '') => {
-                logAttendance(subject, status, reason);
+            const performLog = (reason = '', lessonTime = 'N/A') => {
+                logAttendance(subject, status, reason, lessonTime);
                 document.getElementById('early-log-modal').classList.remove('visible');
                 document.getElementById('early-log-reason').value = '';
             };
@@ -498,14 +500,16 @@
             // Logic for 'attended' status
             const now = new Date();
             const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
-            const lessonInfo = scheduleData.find(l => l.subject === subject && l.days.includes(todayDayName));
+            const lessonData = scheduleData.find(l => l.subject === subject);
+            const scheduleForToday = lessonData?.schedule.find(s => s.day === todayDayName);
 
-            if (!lessonInfo || !lessonInfo.time) {
+            if (!scheduleForToday) {
                 performLog("تسجيل يدوي ليوم بدون حصة مجدولة");
                 return;
             }
 
-            const [hours, minutes] = lessonInfo.time.split(':');
+            const lessonTimeStr = scheduleForToday.time;
+            const [hours, minutes] = lessonTimeStr.split(':');
             const lessonTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
             const startOfDay = new Date(now);
             startOfDay.setHours(0,0,0,0);
@@ -516,7 +520,7 @@
                 const modal = document.getElementById('early-log-modal');
                 document.getElementById('early-log-message').textContent = `لقد سجلت حضورك لهذه المادة اليوم بالفعل. هل تريد تسجيلها مرة أخرى؟`;
                 modal.classList.add('visible');
-                document.getElementById('confirm-early-log').onclick = () => performLog();
+                document.getElementById('confirm-early-log').onclick = () => performLog('', lessonTimeStr);
                 return;
             }
 
@@ -524,24 +528,23 @@
                 const modal = document.getElementById('early-log-modal');
                 document.getElementById('early-log-message').textContent = 'أنت تسجل الحصة قبل موعدها. هل أنت متأكد؟';
                 modal.classList.add('visible');
-                document.getElementById('confirm-early-log').onclick = () => performLog();
+                document.getElementById('confirm-early-log').onclick = () => performLog('', lessonTimeStr);
             } else {
-                performLog();
+                performLog('', lessonTimeStr);
             }
         }
 
 
-        async function logAttendance(subject, status, reason = '') {
+        async function logAttendance(subject, status, reason = '', lessonTime = 'N/A') {
             const logStatus = document.getElementById('log-status');
             logStatus.textContent = 'جاري الحفظ...';
             try {
-                const lessonInfo = scheduleData.find(l => l.subject === subject);
                 const docRef = collection(db, "users", userData.id, "attendance");
                 await addDoc(docRef, { 
                     subject, 
                     status, 
                     reason, 
-                    lessonTime: lessonInfo ? lessonInfo.time : 'N/A',
+                    lessonTime,
                     timestamp: new Date() 
                 });
                 logStatus.textContent = `تم تسجيل ${status === 'attended' ? 'حضور' : 'غياب'} بنجاح.`;
@@ -661,7 +664,7 @@
                     ]
                 },
                 options: {
-                    plugins: { legend: { display: true } },
+                    plugins: { legend: { display: false } },
                     scales: {
                         x: { stacked: false, grid: { display: false } },
                         y: { stacked: false, beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(128, 128, 128, 0.2)' } }
@@ -715,7 +718,20 @@
         async function updateTodayLessonsStatus() {
             const now = new Date();
             const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
-            const todayLessons = scheduleData.filter(l => l.days.includes(todayDayName) && l.time).map(l => ({ ...l, date: new Date(now.toDateString() + ' ' + l.time) })).sort((a, b) => a.date - b.date);
+            
+            const todayLessons = [];
+            scheduleData.forEach(lesson => {
+                lesson.schedule.forEach(s => {
+                    if (s.day === todayDayName) {
+                        todayLessons.push({
+                            ...lesson,
+                            time: s.time,
+                            date: new Date(now.toDateString() + ' ' + s.time)
+                        });
+                    }
+                });
+            });
+            todayLessons.sort((a, b) => a.date - b.date);
 
             const container = document.getElementById('today-lessons-container');
             if (todayLessons.length === 0) {
@@ -737,9 +753,8 @@
                 let statusHtml = '';
                 let statusClass = '';
                 let timeDetailsHtml = '';
+                let backgroundStyle = '';
                 const record = attendanceRecords.get(lesson.subject);
-                const isDark = document.documentElement.classList.contains('dark');
-                const subjectColor = subjectColors[lesson.subject] ? (isDark ? subjectColors[lesson.subject].dark : subjectColors[lesson.subject].light) : 'transparent';
 
                 if (record) {
                     statusHtml = `<p class="font-bold ${record.status === 'attended' ? 'text-green-600' : 'text-red-600'}">${record.status === 'attended' ? 'تم الحضور' : 'غياب'}</p>`;
@@ -758,7 +773,7 @@
                     timeDetailsHtml = `<p class="text-xs text-center mt-2 font-mono text-slate-500">${formatTimeDifference(diffMillis)}</p>`;
                 }
                 
-                return `<div class="p-3 rounded-lg ${statusClass} transition-all duration-300" style="background-color: ${subjectColor};">
+                return `<div class="p-3 rounded-lg ${statusClass} transition-all duration-300" style="${backgroundStyle}">
                             <div class="flex justify-between items-center">
                                 <div>
                                     <h3 class="font-semibold">${lesson.subject}</h3>
@@ -775,7 +790,20 @@
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowDayName = Object.keys(dayMapping).find(key => dayMapping[key] === tomorrow.getDay());
-            const tomorrowLessons = scheduleData.filter(l => l.days.includes(tomorrowDayName) && l.time).sort((a, b) => a.time.localeCompare(b.time));
+            
+            const tomorrowLessons = [];
+            scheduleData.forEach(lesson => {
+                lesson.schedule.forEach(s => {
+                    if (s.day === tomorrowDayName) {
+                        tomorrowLessons.push({
+                            ...lesson,
+                            time: s.time
+                        });
+                    }
+                });
+            });
+            tomorrowLessons.sort((a, b) => a.time.localeCompare(b.time));
+
             const listContainer = document.getElementById('tomorrow-lessons-list');
             if (tomorrowLessons.length === 0) {
                 listContainer.innerHTML = `<p class="text-slate-500 dark:text-slate-400">لا توجد دروس غداً. يوم راحة!</p>`;
@@ -786,7 +814,17 @@
         }
         
         function displayFullSchedule(container) {
-            container.innerHTML = scheduleData.map(lesson => `<div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700"><h3 class="font-semibold text-blue-700 dark:text-blue-400">${lesson.subject}</h3><p class="text-sm text-slate-600 dark:text-slate-400">المواعيد: ${lesson.days.join(' و ') || 'غير محدد'} - ${lesson.time ? new Date('1970-01-01T' + lesson.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'}) : 'غير محدد'}</p><p class="text-xs text-slate-500">المعلم: ${lesson.teacher}</p></div>`).join('');
+            container.innerHTML = scheduleData.map(lesson => {
+                const scheduleString = lesson.schedule.map(s => 
+                    `${s.day} (الساعة ${new Date('1970-01-01T' + s.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'})})`
+                ).join(' و ');
+
+                return `<div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <h3 class="font-semibold text-blue-700 dark:text-blue-400">${lesson.subject}</h3>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">المواعيد: ${scheduleString || 'غير محدد'}</p>
+                            <p class="text-xs text-slate-500">المعلم: ${lesson.teacher}</p>
+                        </div>`;
+            }).join('');
         }
 
         // --- FINANCIALS ---
@@ -845,7 +883,7 @@
             const container = document.getElementById('financials-list');
             container.innerHTML = '<p>جاري تحميل البيانات المالية...</p>';
             let html = '';
-            for (const lesson of scheduleData.filter(l => l.time)) {
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
                 const price = docSnap.exists() ? docSnap.data().price : 0;
@@ -910,7 +948,7 @@
             const querySnapshot = await getDocs(q);
             const paidSubjects = new Set(querySnapshot.docs.map(d => d.data().subject));
             
-            for (const lesson of scheduleData.filter(l => l.time)) {
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
                 const price = docSnap.exists() ? docSnap.data().price : 0;
@@ -936,7 +974,7 @@
             let listHtml = '';
             const paidRecords = new Map( (await getDocs(query(historyRef, where("year", "==", year), where("month", "==", month)))).docs.map(d => [d.data().subject, {id: d.id, ...d.data()}]) );
             
-            for (const lesson of scheduleData.filter(l => l.time)) {
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const paidRecord = paidRecords.get(lesson.subject);
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
@@ -1112,7 +1150,7 @@
             const paidSubjects = new Set(querySnapshot.docs.map(d => d.data().subject));
 
             let unpaidSubjects = [];
-            for (const lesson of scheduleData.filter(l => l.time)) {
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
                 const price = docSnap.exists() ? docSnap.data().price : 0;
@@ -1526,7 +1564,10 @@
         
         async function getSystemPrompt(mode) {
             const age = calculateAge(userData.birthDate);
-            const scheduleString = scheduleData.map(l => `${l.subject} (${l.days.join(',') || 'غير محدد'}) الساعة ${l.time || 'غير محدد'} مع ${l.teacher}`).join('; ');
+            const scheduleString = scheduleData.map(l => {
+                const times = l.schedule.map(s => `${s.day} الساعة ${new Date('1970-01-01T' + s.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'})}`).join(' و ');
+                return `${l.subject} (${times}) مع ${l.teacher}`;
+            }).join('; ');
             
             const tasksString = await getTasksForPrompt();
             const financialsString = await getFinancialsForPrompt();
@@ -1575,7 +1616,7 @@
             const snapshot = await getDocs(q);
             const paidSubjects = new Set(snapshot.docs.map(d => d.data().subject));
             let unpaid = [];
-            for (const lesson of scheduleData.filter(l => l.time)) {
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
                 const price = docSnap.exists() ? docSnap.data().price : 0;
