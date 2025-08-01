@@ -149,19 +149,13 @@
         
         const GEMINI_API_KEY = "AIzaSyAq0ZvO25ujyl5kxwN6TIrB2xBP9yK4tw0"; 
         
-        // <<< NEW >>> Spotify API Credentials - IMPORTANT!
-        // To enable music search, get your credentials from https://developer.spotify.com/dashboard/
-        const SPOTIFY_CLIENT_ID = 'YOUR_SPOTIFY_CLIENT_ID';
-        const SPOTIFY_CLIENT_SECRET = 'YOUR_SPOTIFY_CLIENT_SECRET';
-        let spotifyToken = null;
-
         const userData = { name: "سيف الدين", birthDate: "2011-03-19", id: "seif_eldeen_user" };
         const scheduleData = [
-            { subject: "اللغة العربية", teacher: "أستاذ فيصل", days: ["الاثنين", "الخميس"], time: "16:00" },
-            { subject: "اللغة الإنجليزية", teacher: "أستاذ مهدي", days: ["الأحد", "الأربعاء"], time: "16:15" },
-            { subject: "العلوم", teacher: "أستاذ بلال", days: ["الأحد", "الأربعاء"], time: "11:30" },
-            { subject: "الدراسات الاجتماعية", teacher: "أستاذ أبو بكر", days: ["الاثنين", "الخميس"], time: "18:00" },
-            { subject: "الرياضيات", teacher: "أستاذ محمد", days: [], time: "" },
+            { subject: "اللغة العربية", teacher: "أستاذ فيصل", schedule: [{day: "الاثنين", time: "16:00"}, {day: "الخميس", time: "16:00"}] },
+            { subject: "اللغة الإنجليزية", teacher: "أستاذ مهدي", schedule: [{day: "الأحد", time: "16:15"}, {day: "الأربعاء", time: "16:15"}] },
+            { subject: "العلوم", teacher: "أستاذ بلال", schedule: [{day: "الأحد", time: "11:30"}, {day: "الأربعاء", time: "11:30"}] },
+            { subject: "الدراسات الاجتماعية", teacher: "أستاذ أبو بكر", schedule: [{day: "الاثنين", time: "18:00"}, {day: "الخميس", time: "18:00"}] },
+            { subject: "الرياضيات", teacher: "أستاذ محمد", schedule: [{day: "السبت", time: "14:30"}, {day: "الثلاثاء", time: "15:30"}] },
         ];
         const dayMapping = { "الأحد": 0, "الاثنين": 1, "الثلاثاء": 2, "الأربعاء": 3, "الخميس": 4, "الجمعة": 5, "السبت": 6 };
         const subjectColors = { 
@@ -204,9 +198,8 @@
             initializePomodoro();
             initializeTodoList();
             initializeSettings();
-            initializeMusicPage(); // <<< NEW >>>
+            initializeMusicPage();
 
-            document.getElementById('google-drive-btn').addEventListener('click', () => window.open('https://drive.google.com', '_blank'));
             document.body.addEventListener('click', () => {
                 requestNotificationPermission();
                 Tone.start();
@@ -225,18 +218,30 @@
             document.getElementById('page-pomodoro').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-md mx-auto text-center"><h2 class="text-2xl font-bold mb-6 border-b-2 border-red-500 dark:border-red-400 pb-2">مؤقت بومودورو</h2><div class="relative w-48 h-48 mx-auto mb-6"><svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-slate-200 dark:text-slate-700" stroke-width="7" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle id="pomodoro-progress-circle" class="pomodoro-progress text-red-500" stroke-width="7" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%;" /></svg><div id="pomodoro-time" class="absolute inset-0 flex items-center justify-center text-4xl font-bold">25:00</div></div><div id="pomodoro-status" class="mb-6 font-semibold text-lg">وقت التركيز</div><div class="flex justify-center gap-4"><button id="pomodoro-start" class="bg-red-500 text-white px-8 py-2 rounded-lg font-bold transition-transform hover:scale-105">ابدأ</button><button id="pomodoro-pause" class="bg-yellow-500 text-white px-8 py-2 rounded-lg font-bold hidden">إيقاف مؤقت</button><button id="pomodoro-reset" class="bg-gray-500 text-white px-8 py-2 rounded-lg font-bold">إعادة ضبط</button></div><div class="mt-6 border-t dark:border-slate-700 pt-4 space-y-2"><h3 class="font-semibold">تخصيص الأوقات (بالدقائق)</h3><div class="flex justify-around gap-2"><div class="flex-1"><label for="work-time-input" class="text-sm">تركيز</label><input type="number" id="work-time-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="short-break-input" class="text-sm">راحة قصيرة</label><input type="number" id="short-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="long-break-input" class="text-sm">راحة طويلة</label><input type="number" id="long-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div></div><button id="save-pomodoro-settings" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded-md text-sm">حفظ الإعدادات</button></div></div>`;
             document.getElementById('page-tasks').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><div class="flex justify-between items-center mb-4 border-b-2 border-yellow-500 dark:border-yellow-400 pb-2"><h2 class="text-2xl font-bold">قائمة المهام</h2><div class="flex gap-2 items-center"><label for="task-filter" class="text-sm">عرض:</label><select id="task-filter" class="text-sm p-1 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"><option value="all">الكل</option><option value="pending">قيد التنفيذ</option><option value="completed">مكتملة</option></select></div></div><form id="task-form" class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4"><input type="text" id="task-input" class="md:col-span-4 border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600" placeholder="أضف مهمة جديدة..." required><div class="flex items-center gap-2"><label for="task-due-time" class="text-sm">الوقت:</label><input type="time" id="task-due-time" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600 w-full"></div><select id="task-priority" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600"><option value="low">أولوية منخفضة</option><option value="medium" selected>أولوية متوسطة</option><option value="high">أولوية عالية</option></select><button type="submit" class="md:col-span-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">أضف مهمة</button></form><div id="task-list" class="space-y-2"><p>جاري تحميل المهام...</p></div></div>`;
             document.getElementById('page-settings').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2">الإعدادات</h2><div class="space-y-6"><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg flex justify-between items-center"><div><p class="font-semibold">الوضع الليلي</p><p class="text-sm text-slate-600 dark:text-slate-400">لتجربة مريحة للعين في الإضاءة المنخفضة.</p></div><label class="switch"><input type="checkbox" id="dark-mode-toggle"><span class="slider"></span></label></div><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg"><p class="font-semibold">إدارة الإشعارات</p><p class="text-sm text-slate-600 dark:text-slate-400 mb-2">يمكنك تفعيل أو إلغاء تفعيل الإشعارات من إعدادات المتصفح.</p><button id="notification-permission-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">طلب إذن الإشعارات</button></div><div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 p-4 rounded-lg"><p class="font-semibold text-blue-800 dark:text-blue-300">سلة محذوفات المدفوعات</p><p class="text-sm text-blue-600 dark:text-blue-400 mb-2">يمكنك استرجاع سجلات الشهور المحذوفة من هنا.</p><div id="recycle-bin-container" class="space-y-2 mt-2"><p class="text-xs text-slate-500">سلة المحذوفات فارغة.</p></div></div><div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 p-4 rounded-lg"><p class="font-semibold text-red-800 dark:text-red-300">منطقة الخطر</p><p class="text-sm text-red-600 dark:text-red-400 mb-2">سيؤدي هذا إلى حذف جميع سجلات الحضور والغياب نهائيًا. لا يمكن التراجع عن هذا الإجراء.</p><button id="delete-attendance-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">حذف كل السجلات</button></div></div></div>`;
-            // <<< MODIFIED >>> HTML for Music page
             document.getElementById('page-music').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg">
-                <h2 class="text-2xl font-bold mb-4 border-b-2 border-pink-500 dark:border-pink-400 pb-2">موسيقى حماسية</h2>
-                <div class="mb-4 flex gap-2">
-                    <input type="text" id="spotify-search-input" class="flex-grow border dark:border-slate-600 rounded-lg p-2 bg-transparent" placeholder="ابحث عن أغنية أو فنان...">
-                    <button id="spotify-search-btn" class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg">ابحث</button>
-                </div>
-                <div id="spotify-results" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8"></div>
-                <div class="space-y-4 border-t dark:border-slate-700 pt-4">
-                    <h3 class="font-semibold mb-2">قوائم تشغيل مقترحة</h3>
-                    <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DWWQRwui0ExPn?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-                    <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DX5trt9i14X7j?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                <h2 class="text-2xl font-bold mb-4 border-b-2 border-pink-500 dark:border-pink-400 pb-2">موسيقى حماسية للمذاكرة</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">ملاحظة: للحصول على التجربة الكاملة وتشغيل الأغاني كاملة، قد تحتاج إلى تسجيل الدخول إلى حساب Spotify في متصفحك.</p>
+                <div class="space-y-4">
+                    <div class="spotify-player-wrapper">
+                        <h3 class="font-semibold mb-2">Believer - Imagine Dragons</h3>
+                        <iframe class="spotify-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/track/0pqnGHJpmpx2efrCaLqsgn?utm_source=generator" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                    </div>
+                    <div class="spotify-player-wrapper">
+                        <h3 class="font-semibold mb-2">أغنية حماسية مقترحة</h3>
+                        <iframe class="spotify-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/track/7GhIk7Il098yCjg4BQjzvb?utm_source=generator" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                    </div>
+                    <div class="spotify-player-wrapper">
+                        <h3 class="font-semibold mb-2">قائمة تشغيل للتركيز (Lofi Beats)</h3>
+                        <iframe class="spotify-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DWWQRwui0ExPn?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                    </div>
+                    <div class="spotify-player-wrapper">
+                        <h3 class="font-semibold mb-2">موسيقى إلكترونية للبرمجة والدراسة</h3>
+                        <iframe class="spotify-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DX5trt9i14X7j?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                    </div>
+                     <div class="spotify-player-wrapper">
+                        <h3 class="font-semibold mb-2">قائمة تشغيل حماسية (Gym & Workout)</h3>
+                        <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DX76Wlfdnj7AP?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                    </div>
                 </div>
             </div>`;
         }
@@ -341,38 +346,40 @@
             const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
             
             scheduleData.forEach(lesson => {
-                if (lesson.days.includes(todayDayName) && lesson.time) {
-                    const [hours, minutes] = lesson.time.split(':');
-                    const lessonTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-                    const diffMinutes = (lessonTime.getTime() - now.getTime()) / 60000;
+                lesson.schedule.forEach(s => {
+                    if (s.day === todayDayName) {
+                        const [hours, minutes] = s.time.split(':');
+                        const lessonTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+                        const diffMinutes = (lessonTime.getTime() - now.getTime()) / 60000;
 
-                    const reminders = [
-                        { time: 30, text: "سيبدأ خلال 30 دقيقة", sound: true },
-                        { time: 15, text: "سيبدأ خلال 15 دقيقة" }, 
-                        { time: 5, text: "سيبدأ خلال 5 دقائق" }, 
-                        { time: 0, text: "قد بدأ الآن!" }
-                    ];
+                        const reminders = [
+                            { time: 30, text: "سيبدأ خلال 30 دقيقة", sound: true },
+                            { time: 15, text: "سيبدأ خلال 15 دقيقة" }, 
+                            { time: 5, text: "سيبدأ خلال 5 دقائق" }, 
+                            { time: 0, text: "قد بدأ الآن!" }
+                        ];
 
-                    reminders.forEach(r => {
-                        if (diffMinutes > r.time - 1 && diffMinutes <= r.time) {
-                            const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
-                            if (!localStorage.getItem(key)) {
-                                sendNotification(`تذكير بدرس ${lesson.subject}`, `الدرس ${r.text}`);
-                                if (r.sound) {
-                                    playAlarmSound();
-                                }
-                                localStorage.setItem(key, 'sent');
-                            }
-                        }
-                    });
-                     
-                    if (diffMinutes < -60) {
                         reminders.forEach(r => {
-                            const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
-                            localStorage.removeItem(key);
+                            if (diffMinutes > r.time - 1 && diffMinutes <= r.time) {
+                                const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
+                                if (!localStorage.getItem(key)) {
+                                    sendNotification(`تذكير بدرس ${lesson.subject}`, `الدرس ${r.text}`);
+                                    if (r.sound) {
+                                        playAlarmSound();
+                                    }
+                                    localStorage.setItem(key, 'sent');
+                                }
+                            }
                         });
+                        
+                        if (diffMinutes < -60) {
+                            reminders.forEach(r => {
+                                const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
+                                localStorage.removeItem(key);
+                            });
+                        }
                     }
-                }
+                });
             });
         }
         
@@ -447,7 +454,7 @@
             const select = document.getElementById('lesson-select');
             select.innerHTML = '';
             scheduleData.forEach(lesson => {
-                if (lesson.time) select.innerHTML += `<option value="${lesson.subject}">${lesson.subject}</option>`;
+                 select.innerHTML += `<option value="${lesson.subject}">${lesson.subject}</option>`;
             });
 
             document.querySelectorAll('.log-btn').forEach(btn => btn.addEventListener('click', handleLogAction));
@@ -472,35 +479,47 @@
                 return;
             }
 
+            const performLog = (reason = '', lessonTime = 'N/A') => {
+                logAttendance(subject, status, reason, lessonTime);
+                document.getElementById('early-log-modal').classList.remove('visible');
+                document.getElementById('early-log-reason').value = '';
+            };
+
+            if (status === 'absent') {
+                const modal = document.getElementById('early-log-modal');
+                document.getElementById('early-log-message').textContent = `هل أنت متأكد من تسجيل غياب في مادة ${subject}؟ يمكنك ذكر السبب.`;
+                modal.classList.add('visible');
+                document.getElementById('confirm-early-log').onclick = () => {
+                    const reason = document.getElementById('early-log-reason').value;
+                    performLog(reason);
+                };
+                return;
+            }
+            
+            // Logic for 'attended' status
             const now = new Date();
             const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
-            const lessonInfo = scheduleData.find(l => l.subject === subject && l.days.includes(todayDayName));
-            
-            if (!lessonInfo || !lessonInfo.time) {
-                logAttendance(subject, status, "تسجيل يدوي ليوم بدون حصة مجدولة");
+            const lessonData = scheduleData.find(l => l.subject === subject);
+            const scheduleForToday = lessonData?.schedule.find(s => s.day === todayDayName);
+
+            if (!scheduleForToday) {
+                performLog("تسجيل يدوي ليوم بدون حصة مجدولة");
                 return;
             }
 
-            const [hours, minutes] = lessonInfo.time.split(':');
+            const lessonTimeStr = scheduleForToday.time;
+            const [hours, minutes] = lessonTimeStr.split(':');
             const lessonTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-
             const startOfDay = new Date(now);
             startOfDay.setHours(0,0,0,0);
             const q = query(collection(db, "users", userData.id, "attendance"), where("subject", "==", subject), where("timestamp", ">=", startOfDay));
             const querySnapshot = await getDocs(q);
 
-            const performLog = () => {
-                const reason = document.getElementById('early-log-reason').value;
-                logAttendance(subject, status, reason);
-                document.getElementById('early-log-modal').classList.remove('visible');
-                document.getElementById('early-log-reason').value = '';
-            };
-
             if (!querySnapshot.empty) {
                 const modal = document.getElementById('early-log-modal');
                 document.getElementById('early-log-message').textContent = `لقد سجلت حضورك لهذه المادة اليوم بالفعل. هل تريد تسجيلها مرة أخرى؟`;
                 modal.classList.add('visible');
-                document.getElementById('confirm-early-log').onclick = performLog;
+                document.getElementById('confirm-early-log').onclick = () => performLog('', lessonTimeStr);
                 return;
             }
 
@@ -508,24 +527,23 @@
                 const modal = document.getElementById('early-log-modal');
                 document.getElementById('early-log-message').textContent = 'أنت تسجل الحصة قبل موعدها. هل أنت متأكد؟';
                 modal.classList.add('visible');
-                document.getElementById('confirm-early-log').onclick = performLog;
+                document.getElementById('confirm-early-log').onclick = () => performLog('', lessonTimeStr);
             } else {
-                logAttendance(subject, status);
+                performLog('', lessonTimeStr);
             }
         }
 
 
-        async function logAttendance(subject, status, reason = '') {
+        async function logAttendance(subject, status, reason = '', lessonTime = 'N/A') {
             const logStatus = document.getElementById('log-status');
             logStatus.textContent = 'جاري الحفظ...';
             try {
-                const lessonInfo = scheduleData.find(l => l.subject === subject);
                 const docRef = collection(db, "users", userData.id, "attendance");
                 await addDoc(docRef, { 
                     subject, 
                     status, 
                     reason, 
-                    lessonTime: lessonInfo ? lessonInfo.time : 'N/A',
+                    lessonTime,
                     timestamp: new Date() 
                 });
                 logStatus.textContent = `تم تسجيل ${status === 'attended' ? 'حضور' : 'غياب'} بنجاح.`;
@@ -588,7 +606,7 @@
             const attendanceRef = collection(db, "users", userData.id, "attendance");
             const querySnapshot = await getDocs(attendanceRef);
             const stats = {};
-            const labels = scheduleData.filter(l => l.time).map(l => l.subject);
+            const labels = scheduleData.map(l => l.subject);
             labels.forEach(l => stats[l] = { attended: 0, absent: 0 });
 
             let totalAttended = 0, totalAbsent = 0;
@@ -640,15 +658,15 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'حضور', data: labels.map(l => stats[l].attended), backgroundColor: labels.map(l => subjectColors[l]?.base || '#22c55e'), borderRadius: 4 },
-                        { label: 'غياب', data: labels.map(l => stats[l].absent), backgroundColor: labels.map(l => subjectColors[l]?.base || '#ef4444'), borderRadius: 4, hidden: true }
+                        { label: 'حضور', data: labels.map(l => stats[l].attended), backgroundColor: labels.map(l => subjectColors[l]?.base || '#a1a1aa'), borderColor: '#16a34a', borderWidth: 2, borderRadius: 4 },
+                        { label: 'غياب', data: labels.map(l => stats[l].absent), backgroundColor: labels.map(l => subjectColors[l]?.base || '#a1a1aa'), borderColor: '#dc2626', borderWidth: 2, borderRadius: 4 }
                     ]
                 },
                 options: {
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { stacked: true, grid: { display: false } },
-                        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(128, 128, 128, 0.2)' } }
+                        x: { stacked: false, grid: { display: false } },
+                        y: { stacked: false, beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(128, 128, 128, 0.2)' } }
                     },
                     responsive: true,
                     maintainAspectRatio: false,
@@ -656,7 +674,7 @@
             });
             generateCustomChartLegend(labels);
         }
-
+        
         function generateCustomChartLegend(labels) {
             const legendContainer = document.getElementById('chart-legend');
             legendContainer.innerHTML = '';
@@ -699,7 +717,20 @@
         async function updateTodayLessonsStatus() {
             const now = new Date();
             const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
-            const todayLessons = scheduleData.filter(l => l.days.includes(todayDayName) && l.time).map(l => ({ ...l, date: new Date(now.toDateString() + ' ' + l.time) })).sort((a, b) => a.date - b.date);
+            
+            const todayLessons = [];
+            scheduleData.forEach(lesson => {
+                lesson.schedule.forEach(s => {
+                    if (s.day === todayDayName) {
+                        todayLessons.push({
+                            ...lesson,
+                            time: s.time,
+                            date: new Date(now.toDateString() + ' ' + s.time)
+                        });
+                    }
+                });
+            });
+            todayLessons.sort((a, b) => a.date - b.date);
 
             const container = document.getElementById('today-lessons-container');
             if (todayLessons.length === 0) {
@@ -721,13 +752,12 @@
                 let statusHtml = '';
                 let statusClass = '';
                 let timeDetailsHtml = '';
+                let backgroundStyle = '';
                 const record = attendanceRecords.get(lesson.subject);
-                const isDark = document.documentElement.classList.contains('dark');
-                const subjectColor = subjectColors[lesson.subject] ? (isDark ? subjectColors[lesson.subject].dark : subjectColors[lesson.subject].light) : (isDark ? 'var(--bg-tertiary)' : '#e2e8f0');
 
                 if (record) {
                     statusHtml = `<p class="font-bold ${record.status === 'attended' ? 'text-green-600' : 'text-red-600'}">${record.status === 'attended' ? 'تم الحضور' : 'غياب'}</p>`;
-                    statusClass = `border-r-4 ${record.status === 'attended' ? 'border-green-500' : 'border-red-500'}`;
+                    statusClass = `ring-2 ${record.status === 'attended' ? 'ring-green-500' : 'ring-red-500'}`;
                 } else if (diffMillis < 0) {
                     statusClass = 'opacity-70';
                     statusHtml = `<p class="text-sm font-semibold text-yellow-600 dark:text-yellow-400">فات ولم يسجل</p>`;
@@ -742,7 +772,7 @@
                     timeDetailsHtml = `<p class="text-xs text-center mt-2 font-mono text-slate-500">${formatTimeDifference(diffMillis)}</p>`;
                 }
                 
-                return `<div class="p-3 rounded-lg ${statusClass} transition-all duration-300" style="background-color: ${record ? subjectColor : ''}">
+                return `<div class="p-3 rounded-lg ${statusClass} transition-all duration-300" style="${backgroundStyle}">
                             <div class="flex justify-between items-center">
                                 <div>
                                     <h3 class="font-semibold">${lesson.subject}</h3>
@@ -759,7 +789,20 @@
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowDayName = Object.keys(dayMapping).find(key => dayMapping[key] === tomorrow.getDay());
-            const tomorrowLessons = scheduleData.filter(l => l.days.includes(tomorrowDayName) && l.time).sort((a, b) => a.time.localeCompare(b.time));
+            
+            const tomorrowLessons = [];
+            scheduleData.forEach(lesson => {
+                lesson.schedule.forEach(s => {
+                    if (s.day === tomorrowDayName) {
+                        tomorrowLessons.push({
+                            ...lesson,
+                            time: s.time
+                        });
+                    }
+                });
+            });
+            tomorrowLessons.sort((a, b) => a.time.localeCompare(b.time));
+
             const listContainer = document.getElementById('tomorrow-lessons-list');
             if (tomorrowLessons.length === 0) {
                 listContainer.innerHTML = `<p class="text-slate-500 dark:text-slate-400">لا توجد دروس غداً. يوم راحة!</p>`;
@@ -770,7 +813,17 @@
         }
         
         function displayFullSchedule(container) {
-            container.innerHTML = scheduleData.map(lesson => `<div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700"><h3 class="font-semibold text-blue-700 dark:text-blue-400">${lesson.subject}</h3><p class="text-sm text-slate-600 dark:text-slate-400">المواعيد: ${lesson.days.join(' و ') || 'غير محدد'} - ${lesson.time ? new Date('1970-01-01T' + lesson.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'}) : 'غير محدد'}</p><p class="text-xs text-slate-500">المعلم: ${lesson.teacher}</p></div>`).join('');
+            container.innerHTML = scheduleData.map(lesson => {
+                const scheduleString = lesson.schedule.map(s => 
+                    `${s.day} (الساعة ${new Date('1970-01-01T' + s.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'})})`
+                ).join(' و ');
+
+                return `<div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <h3 class="font-semibold text-blue-700 dark:text-blue-400">${lesson.subject}</h3>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">المواعيد: ${scheduleString || 'غير محدد'}</p>
+                            <p class="text-xs text-slate-500">المعلم: ${lesson.teacher}</p>
+                        </div>`;
+            }).join('');
         }
 
         // --- FINANCIALS ---
@@ -829,7 +882,7 @@
             const container = document.getElementById('financials-list');
             container.innerHTML = '<p>جاري تحميل البيانات المالية...</p>';
             let html = '';
-            for (const lesson of scheduleData.filter(l => l.time)) {
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
                 const price = docSnap.exists() ? docSnap.data().price : 0;
@@ -894,7 +947,7 @@
             const querySnapshot = await getDocs(q);
             const paidSubjects = new Set(querySnapshot.docs.map(d => d.data().subject));
             
-            for (const lesson of scheduleData.filter(l => l.time)) {
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
                 const price = docSnap.exists() ? docSnap.data().price : 0;
@@ -920,7 +973,7 @@
             let listHtml = '';
             const paidRecords = new Map( (await getDocs(query(historyRef, where("year", "==", year), where("month", "==", month)))).docs.map(d => [d.data().subject, {id: d.id, ...d.data()}]) );
             
-            for (const lesson of scheduleData.filter(l => l.time)) {
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const paidRecord = paidRecords.get(lesson.subject);
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
@@ -1096,11 +1149,10 @@
             const paidSubjects = new Set(querySnapshot.docs.map(d => d.data().subject));
 
             let unpaidSubjects = [];
-            for (const lesson of scheduleData.filter(l => l.time)) {
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
                 const price = docSnap.exists() ? docSnap.data().price : 0;
-
                 if (price > 0 && !paidSubjects.has(lesson.subject)) {
                     unpaidSubjects.push(lesson.subject);
                 }
@@ -1510,7 +1562,10 @@
         
         async function getSystemPrompt(mode) {
             const age = calculateAge(userData.birthDate);
-            const scheduleString = scheduleData.map(l => `${l.subject} (${l.days.join(',') || 'غير محدد'}) الساعة ${l.time || 'غير محدد'} مع ${l.teacher}`).join('; ');
+            const scheduleString = scheduleData.map(l => {
+                const times = l.schedule.map(s => `${s.day} الساعة ${new Date('1970-01-01T' + s.time).toLocaleTimeString('ar-EG', {hour:'numeric', minute:'numeric'})}`).join(' و ');
+                return `${l.subject} (${times}) مع ${l.teacher}`;
+            }).join('; ');
             
             const tasksString = await getTasksForPrompt();
             const financialsString = await getFinancialsForPrompt();
@@ -1559,7 +1614,7 @@
             const snapshot = await getDocs(q);
             const paidSubjects = new Set(snapshot.docs.map(d => d.data().subject));
             let unpaid = [];
-            for (const lesson of scheduleData.filter(l => l.time)) {
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
                 const price = docSnap.exists() ? docSnap.data().price : 0;
@@ -1659,71 +1714,163 @@
 
         // --- MUSIC FEATURE ---
         function initializeMusicPage() {
-            document.getElementById('spotify-search-btn').addEventListener('click', () => {
-                const query = document.getElementById('spotify-search-input').value;
-                searchSpotify(query);
+            const page = document.getElementById('page-music');
+            page.addEventListener('mouseenter', (event) => {
+                const wrapper = event.target.closest('.spotify-player-wrapper');
+                if (wrapper) {
+                    const currentIframe = wrapper.querySelector('.spotify-iframe');
+                    document.querySelectorAll('.spotify-iframe').forEach(iframe => {
+                        if (iframe !== currentIframe && iframe.contentWindow) {
+                            // Reloading the iframe stops the music
+                            iframe.src = iframe.src;
+                        }
+                    });
+                }
+            }, true); // Use capture phase to catch event early
+        }
+
+        // --- GOOGLE DRIVE FEATURE ---
+        function initializeDrivePage() {
+            const authButton = document.getElementById('drive-auth-btn');
+            document.getElementById('upload-files-btn').addEventListener('click', handleUploadClick);
+
+            // Callback function for when GAPI client is ready
+            const gapiReadyCallback = async () => {
+                await gapi.client.init({
+                    // NOTE: The API KEY is often needed for discovery documents, but might not be strictly necessary if only using OAuth tokens.
+                    // apiKey: GOOGLE_API_KEY, 
+                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+                });
+                // Enable the auth button now that the client is ready
+                authButton.disabled = false;
+                authButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                authButton.innerHTML = 'تسجيل الدخول وربط حساب Google Drive';
+                authButton.addEventListener('click', handleAuthClick);
+            };
+
+            // Callback function for when GSI client is ready
+            const gsiReadyCallback = () => {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: GOOGLE_DRIVE_SCOPE,
+                    callback: (tokenResponse) => {
+                        if (tokenResponse && tokenResponse.access_token) {
+                            gapi.client.setToken(tokenResponse);
+                            document.getElementById('drive-auth-view').classList.add('hidden');
+                            document.getElementById('drive-upload-view').classList.remove('hidden');
+                        }
+                    },
+                });
+            };
+
+            // Load the libraries and then call the callbacks
+            gapi.load('client', gapiReadyCallback);
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: gsiReadyCallback
             });
         }
 
-        async function getSpotifyToken() {
-            if (spotifyToken) return spotifyToken;
-            if (SPOTIFY_CLIENT_ID === 'YOUR_SPOTIFY_CLIENT_ID' || SPOTIFY_CLIENT_SECRET === 'YOUR_SPOTIFY_CLIENT_SECRET') {
-                return null;
-            }
-            try {
-                const response = await fetch('https://accounts.spotify.com/api/token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Authorization': 'Basic ' + btoa(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET)
-                    },
-                    body: 'grant_type=client_credentials'
-                });
-                const data = await response.json();
-                spotifyToken = data.access_token;
-                setTimeout(() => spotifyToken = null, data.expires_in * 1000); // Reset token when it expires
-                return spotifyToken;
-            } catch (error) {
-                console.error('Error getting Spotify token:', error);
-                return null;
+
+        function handleAuthClick() {
+            if (tokenClient) {
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            } else {
+                console.error("Token client not initialized.");
             }
         }
 
-        async function searchSpotify(query) {
-            const resultsContainer = document.getElementById('spotify-results');
-            resultsContainer.innerHTML = '<p class="animate-pulse col-span-full text-center">جاري البحث...</p>';
-            
-            const token = await getSpotifyToken();
-            if (!token) {
-                resultsContainer.innerHTML = `<p class="col-span-full text-center text-red-500">خطأ: لم يتم تكوين Spotify API. يرجى إضافة Client ID و Secret في الكود.</p>`;
+        async function handleUploadClick() {
+            const files = document.getElementById('file-input').files;
+            if (files.length === 0) {
+                alert('الرجاء اختيار ملف واحد على الأقل للرفع.');
                 return;
             }
+
+            const statusDiv = document.getElementById('upload-status');
+            statusDiv.innerHTML = '<p class="text-blue-500">جاري الرفع...</p>';
 
             try {
-                const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=20`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await response.json();
-                displayTracks(data.tracks.items);
-            } catch (error) {
-                console.error('Error searching Spotify:', error);
-                resultsContainer.innerHTML = `<p class="col-span-full text-center text-red-500">حدث خطأ أثناء البحث.</p>`;
-            }
-        }
+                // 1. Find or create the target folder
+                const folderName = 'صديقي الدراسي - ملفات';
+                let folderId = null;
 
-        function displayTracks(tracks) {
-            const resultsContainer = document.getElementById('spotify-results');
-            if (!tracks || tracks.length === 0) {
-                resultsContainer.innerHTML = '<p class="col-span-full text-center">لم يتم العثور على نتائج.</p>';
-                return;
+                const folderQueryResponse = await gapi.client.drive.files.list({
+                    q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
+                    fields: 'files(id, name)',
+                });
+
+                if (folderQueryResponse.result.files.length > 0) {
+                    folderId = folderQueryResponse.result.files[0].id;
+                } else {
+                    const createFolderResponse = await gapi.client.drive.files.create({
+                        resource: {
+                            name: folderName,
+                            mimeType: 'application/vnd.google-apps.folder',
+                        },
+                        fields: 'id',
+                    });
+                    folderId = createFolderResponse.result.id;
+                }
+
+                if (!folderId) {
+                    throw new Error('لم يتم العثور على المجلد أو إنشاؤه.');
+                }
+
+                // 2. Upload each file
+                let successfulUploads = 0;
+                for (const file of files) {
+                    const metadata = {
+                        name: file.name,
+                        parents: [folderId],
+                    };
+
+                    const reader = new FileReader();
+                    reader.readAsArrayBuffer(file);
+                    reader.onload = async () => {
+                        const fileContent = reader.result;
+                        const boundary = '-------314159265358979323846';
+                        const delimiter = `\r\n--${boundary}\r\n`;
+                        const close_delim = `\r\n--${boundary}--`;
+
+                        const multipartRequestBody =
+                            delimiter +
+                            'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+                            JSON.stringify(metadata) +
+                            delimiter +
+                            `Content-Type: ${file.type || 'application/octet-stream'}\r\n` +
+                            'Content-Transfer-Encoding: base64\r\n' +
+                            '\r\n' +
+                            btoa(String.fromCharCode.apply(null, new Uint8Array(fileContent))) +
+                            close_delim;
+
+                        const request = gapi.client.request({
+                            path: '/upload/drive/v3/files',
+                            method: 'POST',
+                            params: { uploadType: 'multipart' },
+                            headers: {
+                                'Content-Type': `multipart/related; boundary=${boundary}`,
+                            },
+                            body: multipartRequestBody,
+                        });
+
+                        try {
+                            await request;
+                            successfulUploads++;
+                            if (successfulUploads === files.length) {
+                                statusDiv.innerHTML = `<p class="text-green-500">تم رفع ${successfulUploads} ملف بنجاح!</p>`;
+                                document.getElementById('file-input').value = ''; // Clear input
+                            }
+                        } catch (err) {
+                             console.error('Error uploading file:', file.name, err);
+                             statusDiv.innerHTML = `<p class="text-red-500">فشل رفع الملف: ${file.name}.</p>`;
+                        }
+                    };
+                }
+            } catch (error) {
+                console.error('An error occurred:', error);
+                statusDiv.innerHTML = `<p class="text-red-500">حدث خطأ: ${error.message}</p>`;
             }
-            resultsContainer.innerHTML = tracks.map(track => {
-                return `
-                    <div class="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4">
-                        <iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/${track.id}?utm_source=generator" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-                    </div>
-                `;
-            }).join('');
         }
     </script>
 </body>
