@@ -209,11 +209,10 @@
             
             // This is still useful for other things like playing sounds
             document.body.addEventListener('click', () => {
-                Tone.start();
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
             }, { once: true });
-            
-            // We removed the old notification checks. The server will handle them now.
-            // setupNotificationChecks(); // --- REMOVED ---
             
             // This can still run to update the UI in real-time
             setInterval(updateTodayLessonsStatus, 60000); 
@@ -226,7 +225,7 @@
             document.getElementById('page-financials').innerHTML = `<div class="space-y-8"><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-green-500 dark:border-green-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">إدارة المصاريف</h2><button id="toggle-financials-btn" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><svg class="collapse-icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button></div><div id="financials-list-container" class="collapsible-content"><div id="financials-list" class="space-y-4"><p>جاري تحميل...</p></div></div></div><div id="payment-history-section"></div></div>`;
             document.getElementById('page-ai').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg flex flex-col h-full"><div class="flex justify-between items-center border-b-2 border-green-500 dark:border-green-400 pb-2 mb-4"><h2 class="text-xl md:text-2xl font-bold">المساعد الذكي</h2><button id="clear-chat-btn" class="text-sm bg-red-500 text-white py-1 px-3 rounded-full hover:bg-red-600 transition">مسح المحادثة</button></div><div class="mb-4 flex flex-wrap gap-2 justify-center p-2 rounded-lg bg-slate-100 dark:bg-slate-800"><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="general">عام</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="arabic">عربية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="english">إنجليزية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="science">علوم</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="studies">دراسات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="math">رياضيات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="islamic">دين</button></div><div id="chat-box" class="chat-container custom-scrollbar border dark:border-slate-700 rounded-lg p-4 overflow-y-auto bg-slate-50 dark:bg-slate-800 flex-grow"></div><div class="mt-4 flex gap-2"><input type="text" id="chat-input" class="flex-grow border dark:border-slate-600 rounded-lg p-2 bg-transparent" placeholder="اسألني أي حاجة..."><button id="send-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">أرسل</button></div></div>`;
             document.getElementById('page-files').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-indigo-500 dark:border-indigo-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">ملفاتك الدراسية</h2></div><div class="text-center p-4 md:p-8 border-2 border-dashed dark:border-slate-600 rounded-lg"><img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Google Drive Logo" class="h-16 md:h-20 mx-auto mb-4"><p class="mb-4 text-slate-600 dark:text-slate-400 text-base md:text-lg">احتفظ بملفاتك منظمة وآمنة على Google Drive.</p><p class="mb-6 text-slate-500 dark:text-slate-500 text-sm md:text-base">يمكنك رفع ملخصاتك، واجباتك، ومذكراتك للوصول إليها من أي مكان.</p><button id="google-drive-btn" class="w-full max-w-xs mx-auto bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">الذهاب إلى Google Drive</button><p class="text-xs text-slate-400 mt-3">سيتم فتح Google Drive في نافذة جديدة.</p></div></div>`;
-            document.getElementById('page-pomodoro').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-md mx-auto text-center"><h2 class="text-2xl font-bold mb-6 border-b-2 border-red-500 dark:border-red-400 pb-2">مؤقت بومودورو</h2><div class="relative w-48 h-48 mx-auto mb-6"><svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-slate-200 dark:text-slate-700" stroke-width="7" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle id="pomodoro-progress-circle" class="pomodoro-progress text-red-500" stroke-width="7" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%;" /></svg><div id="pomodoro-time" class="absolute inset-0 flex items-center justify-center text-4xl font-bold">25:00</div></div><div id="pomodoro-status" class="mb-6 font-semibold text-lg">وقت التركيز</div><div class="flex justify-center gap-4"><button id="pomodoro-start" class="bg-red-500 text-white px-8 py-2 rounded-lg font-bold transition-transform hover:scale-105">ابدأ</button><button id="pomodoro-pause" class="bg-yellow-500 text-white px-8 py-2 rounded-lg font-bold hidden">إيقاف مؤقت</button><button id="pomodoro-reset" class="bg-gray-500 text-white px-8 py-2 rounded-lg font-bold">إعادة ضبط</button></div><div class="mt-6 border-t dark:border-slate-700 pt-4 space-y-2"><h3 class="font-semibold">تخصيص الأوقات (بالدقائق)</h3><div class="flex justify-around gap-2"><div class="flex-1"><label for="work-time-input" class="text-sm">تركيز</label><input type="number" id="work-time-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="short-break-input" class="text-sm">راحة قصيرة</label><input type="number" id="short-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="long-break-input" class="text-sm">راحة طويلة</label><input type="number" id="long-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div></div><button id="save-pomodoro-settings" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded-md text-sm">حفظ الإعدادات</button></div></div>`;
+            document.getElementById('page-pomodoro').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-md mx-auto text-center"><h2 class="text-2xl font-bold mb-6 border-b-2 border-red-500 dark:border-red-400 pb-2">مؤقت بومودورو</h2><div class="relative w-48 h-48 mx-auto mb-6"><svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-slate-200 dark:text-slate-700" stroke-width="7" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle id="pomodoro-progress-circle" class="pomodoro-progress text-red-500" stroke-width="7" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%; stroke-dasharray: 283; stroke-dashoffset: 283;" /></svg><div id="pomodoro-time" class="absolute inset-0 flex items-center justify-center text-4xl font-bold">25:00</div></div><div id="pomodoro-status" class="mb-6 font-semibold text-lg">وقت التركيز</div><div class="flex justify-center gap-4"><button id="pomodoro-start" class="bg-red-500 text-white px-8 py-2 rounded-lg font-bold transition-transform hover:scale-105">ابدأ</button><button id="pomodoro-pause" class="bg-yellow-500 text-white px-8 py-2 rounded-lg font-bold hidden">إيقاف مؤقت</button><button id="pomodoro-reset" class="bg-gray-500 text-white px-8 py-2 rounded-lg font-bold">إعادة ضبط</button></div><div class="mt-6 border-t dark:border-slate-700 pt-4 space-y-2"><h3 class="font-semibold">تخصيص الأوقات (بالدقائق)</h3><div class="flex justify-around gap-2"><div class="flex-1"><label for="work-time-input" class="text-sm">تركيز</label><input type="number" id="work-time-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="short-break-input" class="text-sm">راحة قصيرة</label><input type="number" id="short-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="long-break-input" class="text-sm">راحة طويلة</label><input type="number" id="long-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div></div><button id="save-pomodoro-settings" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded-md text-sm">حفظ الإعدادات</button></div></div>`;
             document.getElementById('page-tasks').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><div class="flex justify-between items-center mb-4 border-b-2 border-yellow-500 dark:border-yellow-400 pb-2"><h2 class="text-2xl font-bold">قائمة المهام</h2><div class="flex gap-2 items-center"><label for="task-filter" class="text-sm">عرض:</label><select id="task-filter" class="text-sm p-1 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"><option value="all">الكل</option><option value="pending">قيد التنفيذ</option><option value="completed">مكتملة</option></select></div></div><form id="task-form" class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4"><input type="text" id="task-input" class="md:col-span-4 border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600" placeholder="أضف مهمة جديدة..." required><div class="flex items-center gap-2"><label for="task-due-time" class="text-sm">الوقت:</label><input type="time" id="task-due-time" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600 w-full"></div><select id="task-priority" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600"><option value="low">أولوية منخفضة</option><option value="medium" selected>أولوية متوسطة</option><option value="high">أولوية عالية</option></select><button type="submit" class="md:col-span-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">أضف مهمة</button></form><div id="task-list" class="space-y-2"><p>جاري تحميل المهام...</p></div></div>`;
             document.getElementById('page-settings').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2">الإعدادات</h2><div class="space-y-6"><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg flex justify-between items-center"><div><p class="font-semibold">الوضع الليلي</p><p class="text-sm text-slate-600 dark:text-slate-400">لتجربة مريحة للعين في الإضاءة المنخفضة.</p></div><label class="switch"><input type="checkbox" id="dark-mode-toggle"><span class="slider"></span></label></div><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg"><p class="font-semibold">إدارة الإشعارات</p><p class="text-sm text-slate-600 dark:text-slate-400 mb-2">الإشعارات الحقيقية يتم إرسالها من الخادم. هذا الزر لطلب الإذن المبدئي.</p><button id="notification-permission-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">طلب إذن الإشعارات</button></div><div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 p-4 rounded-lg"><p class="font-semibold text-blue-800 dark:text-blue-300">سلة محذوفات المدفوعات</p><p class="text-sm text-blue-600 dark:text-blue-400 mb-2">يمكنك استرجاع سجلات الشهور المحذوفة من هنا.</p><div id="recycle-bin-container" class="space-y-2 mt-2"><p class="text-xs text-slate-500">سلة المحذوفات فارغة.</p></div></div><div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 p-4 rounded-lg"><p class="font-semibold text-red-800 dark:text-red-300">منطقة الخطر</p><p class="text-sm text-red-600 dark:text-red-400 mb-2">سيؤدي هذا إلى حذف جميع سجلات الحضور والغياب نهائيًا. لا يمكن التراجع عن هذا الإجراء.</p><button id="delete-attendance-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">حذف كل السجلات</button></div></div></div>`;
             document.getElementById('page-music').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg">
@@ -339,21 +338,6 @@
             }
         }
         
-        // --- OLD NOTIFICATION LOGIC (REMOVED) ---
-        // All functions like checkAndSendNotifications, sendNotification, etc., have been removed.
-        // The server-side Firebase Function will handle sending notifications now.
-
-        function playAlarmSound() {
-            try {
-                const synth = new Tone.Synth().toDestination();
-                const now = Tone.now();
-                synth.triggerAttackRelease("G5", "0.2", now);
-                synth.triggerAttackRelease("G5", "0.2", now + 0.3);
-            } catch(e) {
-                console.error("Could not play sound. User may not have interacted with the page yet.", e);
-            }
-        }
-        
         // --- FEATURES (Unchanged logic below) ---
 
         function setupSchedulePage() {
@@ -456,22 +440,25 @@
             }
         }
 
-
-        async function logAttendance(subject, status, reason = '', lessonTime = 'N/A') {
+        // --- IMPROVED --- Optimistic UI update for faster feedback
+        function logAttendance(subject, status, reason = '', lessonTime = 'N/A') {
             const logStatus = document.getElementById('log-status');
-            logStatus.textContent = 'جاري الحفظ...';
-            try {
-                const docRef = collection(db, "users", userData.id, "attendance");
-                await addDoc(docRef, { 
-                    subject, 
-                    status, 
-                    reason, 
-                    lessonTime,
-                    timestamp: new Date() 
-                });
-                logStatus.textContent = `تم تسجيل ${status === 'attended' ? 'حضور' : 'غياب'} بنجاح.`;
-                logStatus.style.color = 'green';
-                setTimeout(() => logStatus.textContent = '', 3000);
+            
+            // Show immediate feedback
+            logStatus.textContent = `تم تسجيل ${status === 'attended' ? 'حضور' : 'غياب'} بنجاح.`;
+            logStatus.style.color = 'green';
+            setTimeout(() => logStatus.textContent = '', 3000);
+
+            // Perform database write and UI refresh in the background
+            addDoc(collection(db, "users", userData.id, "attendance"), { 
+                subject, 
+                status, 
+                reason, 
+                lessonTime,
+                timestamp: new Date() 
+            }).then(() => {
+                console.log("Attendance logged successfully to Firestore.");
+                // Refresh UI with latest data from server
                 updateAttendancePage();
                 updateTodayLessonsStatus();
                 
@@ -483,12 +470,11 @@
                 if (status === 'absent') {
                     triggerAbsenceFollowUpAI(subject, reason);
                 }
-
-            } catch (e) {
+            }).catch(e => {
                 console.error("Error adding document: ", e);
                 logStatus.textContent = 'حدث خطأ أثناء الحفظ.';
                 logStatus.style.color = 'red';
-            }
+            });
         }
         
         async function displayAttendanceHistory() {
@@ -1081,7 +1067,8 @@
                 const seconds = timeLeft % 60;
                 timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 const progress = (totalTime - timeLeft) / totalTime;
-                progressCircle.style.strokeDashoffset = 283 * (1 - progress);
+                const circumference = 2 * Math.PI * 45; // 2 * pi * r
+                progressCircle.style.strokeDashoffset = circumference * (1 - progress);
             };
             
             const resetTimer = () => {
@@ -1113,8 +1100,12 @@
             };
 
             const startTimer = () => {
+                // --- IMPROVED --- Ensure AudioContext is running on start
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                
                 if(isPaused) {
-                    // Local notification for Pomodoro can stay as it's a direct user action
                     if (Notification.permission === "granted") {
                         new Notification('مؤقت بومودورو بدأ!', { body: `حان وقت ${statusDisplay.textContent}.` });
                     }
