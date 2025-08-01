@@ -8,6 +8,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Google API Client Library -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
     <style>
         :root {
             --bg-primary: #f1f5f9; --bg-secondary: #ffffff; --bg-tertiary: #e2e8f0;
@@ -148,6 +151,13 @@
         };
         
         const GEMINI_API_KEY = "AIzaSyAq0ZvO25ujyl5kxwN6TIrB2xBP9yK4tw0"; 
+
+        // <<< NEW >>> Google Drive API Credentials
+        const GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"; // You might need a separate API key for GAPI
+        const GOOGLE_CLIENT_ID = "184479541651-vjpidq0igrpba3rodlejn8nq6iclscj7.apps.googleusercontent.com";
+        const GOOGLE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+        let tokenClient;
+
         
         const userData = { name: "سيف الدين", birthDate: "2011-03-19", id: "seif_eldeen_user" };
         const scheduleData = [
@@ -191,11 +201,6 @@
             injectPageHTML();
             setupNavigation();
             setupUserInfo();
-            
-            // --- NEW --- Call the push notification setup
-            setupMedianPushNotifications();
-
-            // Setup all pages
             setupSchedulePage();
             setupAttendanceStatsPage();
             initializeFinancialsPage();
@@ -204,18 +209,14 @@
             initializeTodoList();
             initializeSettings();
             initializeMusicPage();
+            initializeDrivePage();
 
-            document.getElementById('google-drive-btn').addEventListener('click', () => window.open('https://drive.google.com', '_blank'));
-            
-            // This is still useful for other things like playing sounds
             document.body.addEventListener('click', () => {
-                if (Tone.context.state !== 'running') {
-                    Tone.start();
-                }
+                requestNotificationPermission();
+                Tone.start();
             }, { once: true });
             
-            // This can still run to update the UI in real-time
-            setInterval(updateTodayLessonsStatus, 60000); 
+            setupNotificationChecks();
         }
 
         // --- PAGE HTML INJECTION ---
@@ -224,10 +225,28 @@
             document.getElementById('page-attendance-stats').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="grid grid-cols-1 xl:grid-cols-3 gap-8"><div class="xl:col-span-1"><h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-teal-500 dark:border-teal-400 pb-2">تسجيل الحضور</h2><div id="attendance-logger" class="space-y-3 mt-4"><label for="lesson-select" class="font-semibold">اختر الدرس:</label><select id="lesson-select" class="w-full p-2 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"></select></div><div class="flex gap-2 mt-3"><button data-status="attended" class="log-btn w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">حضور</button><button data-status="absent" class="log-btn w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">غياب</button></div><p id="log-status" class="text-center font-semibold text-sm h-5"></p></div><div class="xl:col-span-2"><h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-purple-500 dark:border-purple-400 pb-2">إحصائيات</h2><div id="enhanced-stats" class="grid grid-cols-2 md:grid-cols-3 gap-2 text-center mb-4"></div><div style="height: 250px;" class="mt-4"><canvas id="attendance-chart"></canvas></div><div id="chart-legend" class="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 border-t dark:border-slate-700 pt-4"></div></div></div><div class="mt-8 border-t dark:border-slate-700 pt-6"><button id="toggle-history-btn" class="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 font-bold py-2 px-4 rounded-lg transition-colors">عرض سجل الحضور التفصيلي</button><div id="attendance-history-container" class="hidden mt-4"><h3 class="text-lg font-bold mb-2">سجل الحصص</h3><div id="attendance-history-list" class="space-y-2 max-h-96 custom-scrollbar overflow-y-auto p-2 bg-slate-100 dark:bg-slate-800 rounded-lg"><p>جاري تحميل السجل...</p></div></div></div></div>`;
             document.getElementById('page-financials').innerHTML = `<div class="space-y-8"><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-green-500 dark:border-green-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">إدارة المصاريف</h2><button id="toggle-financials-btn" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><svg class="collapse-icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button></div><div id="financials-list-container" class="collapsible-content"><div id="financials-list" class="space-y-4"><p>جاري تحميل...</p></div></div></div><div id="payment-history-section"></div></div>`;
             document.getElementById('page-ai').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg flex flex-col h-full"><div class="flex justify-between items-center border-b-2 border-green-500 dark:border-green-400 pb-2 mb-4"><h2 class="text-xl md:text-2xl font-bold">المساعد الذكي</h2><button id="clear-chat-btn" class="text-sm bg-red-500 text-white py-1 px-3 rounded-full hover:bg-red-600 transition">مسح المحادثة</button></div><div class="mb-4 flex flex-wrap gap-2 justify-center p-2 rounded-lg bg-slate-100 dark:bg-slate-800"><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="general">عام</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="arabic">عربية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="english">إنجليزية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="science">علوم</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="studies">دراسات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="math">رياضيات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="islamic">دين</button></div><div id="chat-box" class="chat-container custom-scrollbar border dark:border-slate-700 rounded-lg p-4 overflow-y-auto bg-slate-50 dark:bg-slate-800 flex-grow"></div><div class="mt-4 flex gap-2"><input type="text" id="chat-input" class="flex-grow border dark:border-slate-600 rounded-lg p-2 bg-transparent" placeholder="اسألني أي حاجة..."><button id="send-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">أرسل</button></div></div>`;
-            document.getElementById('page-files').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-indigo-500 dark:border-indigo-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">ملفاتك الدراسية</h2></div><div class="text-center p-4 md:p-8 border-2 border-dashed dark:border-slate-600 rounded-lg"><img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Google Drive Logo" class="h-16 md:h-20 mx-auto mb-4"><p class="mb-4 text-slate-600 dark:text-slate-400 text-base md:text-lg">احتفظ بملفاتك منظمة وآمنة على Google Drive.</p><p class="mb-6 text-slate-500 dark:text-slate-500 text-sm md:text-base">يمكنك رفع ملخصاتك، واجباتك، ومذكراتك للوصول إليها من أي مكان.</p><button id="google-drive-btn" class="w-full max-w-xs mx-auto bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">الذهاب إلى Google Drive</button><p class="text-xs text-slate-400 mt-3">سيتم فتح Google Drive في نافذة جديدة.</p></div></div>`;
-            document.getElementById('page-pomodoro').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-md mx-auto text-center"><h2 class="text-2xl font-bold mb-6 border-b-2 border-red-500 dark:border-red-400 pb-2">مؤقت بومودورو</h2><div class="relative w-48 h-48 mx-auto mb-6"><svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-slate-200 dark:text-slate-700" stroke-width="7" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle id="pomodoro-progress-circle" class="pomodoro-progress text-red-500" stroke-width="7" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%; stroke-dasharray: 283; stroke-dashoffset: 283;" /></svg><div id="pomodoro-time" class="absolute inset-0 flex items-center justify-center text-4xl font-bold">25:00</div></div><div id="pomodoro-status" class="mb-6 font-semibold text-lg">وقت التركيز</div><div class="flex justify-center gap-4"><button id="pomodoro-start" class="bg-red-500 text-white px-8 py-2 rounded-lg font-bold transition-transform hover:scale-105">ابدأ</button><button id="pomodoro-pause" class="bg-yellow-500 text-white px-8 py-2 rounded-lg font-bold hidden">إيقاف مؤقت</button><button id="pomodoro-reset" class="bg-gray-500 text-white px-8 py-2 rounded-lg font-bold">إعادة ضبط</button></div><div class="mt-6 border-t dark:border-slate-700 pt-4 space-y-2"><h3 class="font-semibold">تخصيص الأوقات (بالدقائق)</h3><div class="flex justify-around gap-2"><div class="flex-1"><label for="work-time-input" class="text-sm">تركيز</label><input type="number" id="work-time-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="short-break-input" class="text-sm">راحة قصيرة</label><input type="number" id="short-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="long-break-input" class="text-sm">راحة طويلة</label><input type="number" id="long-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div></div><button id="save-pomodoro-settings" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded-md text-sm">حفظ الإعدادات</button></div></div>`;
+            document.getElementById('page-files').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg">
+                <div class="flex justify-between items-center mb-4 border-b-2 border-indigo-500 dark:border-indigo-400 pb-2">
+                    <h2 class="text-xl md:text-2xl font-bold">ملفاتك الدراسية</h2>
+                </div>
+                <div id="drive-auth-view" class="text-center p-4 md:p-8 border-2 border-dashed dark:border-slate-600 rounded-lg">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Google Drive Logo" class="h-16 md:h-20 mx-auto mb-4">
+                    <p class="mb-4 text-slate-600 dark:text-slate-400 text-base md:text-lg">اربط حسابك في Google Drive لرفع ملفاتك مباشرة.</p>
+                    <button id="drive-auth-btn" class="w-full max-w-xs mx-auto bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">تسجيل الدخول وربط حساب Google Drive</button>
+                </div>
+                <div id="drive-upload-view" class="hidden">
+                    <p class="mb-2 font-semibold">أنت متصل بحساب Google Drive.</p>
+                    <div class="mb-4">
+                        <label for="file-input" class="block mb-2 text-sm font-medium">اختر الملفات لرفعها:</label>
+                        <input type="file" id="file-input" multiple class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                    </div>
+                    <button id="upload-files-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">رفع الملفات الآن</button>
+                    <div id="upload-status" class="mt-4 text-sm font-semibold"></div>
+                </div>
+            </div>`;
+            document.getElementById('page-pomodoro').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-md mx-auto text-center"><h2 class="text-2xl font-bold mb-6 border-b-2 border-red-500 dark:border-red-400 pb-2">مؤقت بومودورو</h2><div class="relative w-48 h-48 mx-auto mb-6"><svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-slate-200 dark:text-slate-700" stroke-width="7" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle id="pomodoro-progress-circle" class="pomodoro-progress text-red-500" stroke-width="7" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%;" /></svg><div id="pomodoro-time" class="absolute inset-0 flex items-center justify-center text-4xl font-bold">25:00</div></div><div id="pomodoro-status" class="mb-6 font-semibold text-lg">وقت التركيز</div><div class="flex justify-center gap-4"><button id="pomodoro-start" class="bg-red-500 text-white px-8 py-2 rounded-lg font-bold transition-transform hover:scale-105">ابدأ</button><button id="pomodoro-pause" class="bg-yellow-500 text-white px-8 py-2 rounded-lg font-bold hidden">إيقاف مؤقت</button><button id="pomodoro-reset" class="bg-gray-500 text-white px-8 py-2 rounded-lg font-bold">إعادة ضبط</button></div><div class="mt-6 border-t dark:border-slate-700 pt-4 space-y-2"><h3 class="font-semibold">تخصيص الأوقات (بالدقائق)</h3><div class="flex justify-around gap-2"><div class="flex-1"><label for="work-time-input" class="text-sm">تركيز</label><input type="number" id="work-time-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="short-break-input" class="text-sm">راحة قصيرة</label><input type="number" id="short-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="long-break-input" class="text-sm">راحة طويلة</label><input type="number" id="long-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div></div><button id="save-pomodoro-settings" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded-md text-sm">حفظ الإعدادات</button></div></div>`;
             document.getElementById('page-tasks').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><div class="flex justify-between items-center mb-4 border-b-2 border-yellow-500 dark:border-yellow-400 pb-2"><h2 class="text-2xl font-bold">قائمة المهام</h2><div class="flex gap-2 items-center"><label for="task-filter" class="text-sm">عرض:</label><select id="task-filter" class="text-sm p-1 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"><option value="all">الكل</option><option value="pending">قيد التنفيذ</option><option value="completed">مكتملة</option></select></div></div><form id="task-form" class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4"><input type="text" id="task-input" class="md:col-span-4 border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600" placeholder="أضف مهمة جديدة..." required><div class="flex items-center gap-2"><label for="task-due-time" class="text-sm">الوقت:</label><input type="time" id="task-due-time" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600 w-full"></div><select id="task-priority" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600"><option value="low">أولوية منخفضة</option><option value="medium" selected>أولوية متوسطة</option><option value="high">أولوية عالية</option></select><button type="submit" class="md:col-span-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">أضف مهمة</button></form><div id="task-list" class="space-y-2"><p>جاري تحميل المهام...</p></div></div>`;
-            document.getElementById('page-settings').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2">الإعدادات</h2><div class="space-y-6"><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg flex justify-between items-center"><div><p class="font-semibold">الوضع الليلي</p><p class="text-sm text-slate-600 dark:text-slate-400">لتجربة مريحة للعين في الإضاءة المنخفضة.</p></div><label class="switch"><input type="checkbox" id="dark-mode-toggle"><span class="slider"></span></label></div><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg"><p class="font-semibold">إدارة الإشعارات</p><p class="text-sm text-slate-600 dark:text-slate-400 mb-2">الإشعارات الحقيقية يتم إرسالها من الخادم. هذا الزر لطلب الإذن المبدئي.</p><button id="notification-permission-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">طلب إذن الإشعارات</button></div><div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 p-4 rounded-lg"><p class="font-semibold text-blue-800 dark:text-blue-300">سلة محذوفات المدفوعات</p><p class="text-sm text-blue-600 dark:text-blue-400 mb-2">يمكنك استرجاع سجلات الشهور المحذوفة من هنا.</p><div id="recycle-bin-container" class="space-y-2 mt-2"><p class="text-xs text-slate-500">سلة المحذوفات فارغة.</p></div></div><div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 p-4 rounded-lg"><p class="font-semibold text-red-800 dark:text-red-300">منطقة الخطر</p><p class="text-sm text-red-600 dark:text-red-400 mb-2">سيؤدي هذا إلى حذف جميع سجلات الحضور والغياب نهائيًا. لا يمكن التراجع عن هذا الإجراء.</p><button id="delete-attendance-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">حذف كل السجلات</button></div></div></div>`;
+            document.getElementById('page-settings').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2">الإعدادات</h2><div class="space-y-6"><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg flex justify-between items-center"><div><p class="font-semibold">الوضع الليلي</p><p class="text-sm text-slate-600 dark:text-slate-400">لتجربة مريحة للعين في الإضاءة المنخفضة.</p></div><label class="switch"><input type="checkbox" id="dark-mode-toggle"><span class="slider"></span></label></div><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg"><p class="font-semibold">إدارة الإشعارات</p><p class="text-sm text-slate-600 dark:text-slate-400 mb-2">يمكنك تفعيل أو إلغاء تفعيل الإشعارات من إعدادات المتصفح.</p><button id="notification-permission-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">طلب إذن الإشعارات</button></div><div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 p-4 rounded-lg"><p class="font-semibold text-blue-800 dark:text-blue-300">سلة محذوفات المدفوعات</p><p class="text-sm text-blue-600 dark:text-blue-400 mb-2">يمكنك استرجاع سجلات الشهور المحذوفة من هنا.</p><div id="recycle-bin-container" class="space-y-2 mt-2"><p class="text-xs text-slate-500">سلة المحذوفات فارغة.</p></div></div><div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 p-4 rounded-lg"><p class="font-semibold text-red-800 dark:text-red-300">منطقة الخطر</p><p class="text-sm text-red-600 dark:text-red-400 mb-2">سيؤدي هذا إلى حذف جميع سجلات الحضور والغياب نهائيًا. لا يمكن التراجع عن هذا الإجراء.</p><button id="delete-attendance-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">حذف كل السجلات</button></div></div></div>`;
             document.getElementById('page-music').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg">
                 <h2 class="text-2xl font-bold mb-4 border-b-2 border-pink-500 dark:border-pink-400 pb-2">موسيقى حماسية للمذاكرة</h2>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">ملاحظة: للحصول على التجربة الكاملة وتشغيل الأغاني كاملة، قد تحتاج إلى تسجيل الدخول إلى حساب Spotify في متصفحك.</p>
@@ -307,38 +326,140 @@
             document.getElementById('motivational-quote').textContent = `"${motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]}"`;
         }
 
-        // --- NEW PUSH NOTIFICATION SETUP ---
-        async function setupMedianPushNotifications() {
-            // This function runs only when inside a Median app
-            if (window.median && window.median.android) {
-                console.log("Median bridge detected. Setting up push notifications.");
+        // --- NOTIFICATIONS ---
+        function setupNotificationChecks() {
+            setInterval(checkAndSendNotifications, 60000);
+            setInterval(updateTodayLessonsStatus, 60000);
+            setInterval(checkHourlyTaskReminder, 3600000);
+            setInterval(checkProactiveAINotification, 14400000);
+            checkDailyPaymentReminders();
+            setInterval(checkDailyPaymentReminders, 21600000);
+        }
 
-                // Request the push token from the native Android app
-                window.median.android.push.register(async (token) => {
-                    if (token) {
-                        console.log("Received push token:", token);
-                        try {
-                            // Save the token to Firestore under the current user's document
-                            const userPushRef = doc(db, "users", userData.id, "pushTokens", token);
-                            await setDoc(userPushRef, {
-                                token: token,
-                                platform: "android",
-                                createdAt: new Date()
-                            });
-                            console.log("Push token saved to Firestore successfully.");
-                        } catch (e) {
-                            console.error("Error saving push token to Firestore:", e);
-                        }
-                    } else {
-                        console.error("Failed to receive a push token from Median app.");
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("هذا المتصفح لا يدعم الإشعارات.");
+                return;
+            }
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        sendNotification("تم تفعيل الإشعارات!", "ستتلقى الآن تذكيرات بالدروس والمهام.");
                     }
                 });
-            } else {
-                console.log("Median bridge not found. Skipping push notification setup. App is running in a standard browser.");
             }
         }
+
+        function sendNotification(title, body) {
+            if (Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: 'https://img.icons8.com/color/48/000000/student-male.png' 
+                });
+            }
+        }
+
+        function playAlarmSound() {
+            try {
+                const synth = new Tone.Synth().toDestination();
+                const now = Tone.now();
+                synth.triggerAttackRelease("G5", "0.2", now);
+                synth.triggerAttackRelease("G5", "0.2", now + 0.3);
+            } catch(e) {
+                console.error("Could not play sound. User may not have interacted with the page yet.", e);
+            }
+        }
+
+        function checkAndSendNotifications() {
+            const now = new Date();
+            const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
+            
+            scheduleData.forEach(lesson => {
+                lesson.schedule.forEach(s => {
+                    if (s.day === todayDayName) {
+                        const [hours, minutes] = s.time.split(':');
+                        const lessonTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+                        const diffMinutes = (lessonTime.getTime() - now.getTime()) / 60000;
+
+                        const reminders = [
+                            { time: 30, text: "سيبدأ خلال 30 دقيقة", sound: true },
+                            { time: 15, text: "سيبدأ خلال 15 دقيقة" }, 
+                            { time: 5, text: "سيبدأ خلال 5 دقائق" }, 
+                            { time: 0, text: "قد بدأ الآن!" }
+                        ];
+
+                        reminders.forEach(r => {
+                            if (diffMinutes > r.time - 1 && diffMinutes <= r.time) {
+                                const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
+                                if (!localStorage.getItem(key)) {
+                                    sendNotification(`تذكير بدرس ${lesson.subject}`, `الدرس ${r.text}`);
+                                    if (r.sound) {
+                                        playAlarmSound();
+                                    }
+                                    localStorage.setItem(key, 'sent');
+                                }
+                            }
+                        });
+                        
+                        if (diffMinutes < -60) {
+                            reminders.forEach(r => {
+                                const key = `notif_${lesson.subject}_${lessonTime.getTime()}_${r.time}`;
+                                localStorage.removeItem(key);
+                            });
+                        }
+                    }
+                });
+            });
+        }
         
-        // --- FEATURES (Unchanged logic below) ---
+        async function checkHourlyTaskReminder() {
+            const currentHour = new Date().getHours();
+            const key = `hourly_task_reminder_${currentHour}`;
+
+            if (localStorage.getItem(key)) return;
+
+            const tasksRef = collection(db, "users", userData.id, "tasks");
+            const q = query(tasksRef, where("completed", "==", false));
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                const taskCount = snapshot.size;
+                const firstTaskText = snapshot.docs[0].data().text;
+                sendNotification(
+                    `تذكير بالمهام (${taskCount})`,
+                    `لديك ${taskCount} مهمة لم تكتمل بعد، مثل: "${firstTaskText}". لا تنس إنجازها!`
+                );
+                localStorage.setItem(key, 'sent');
+            }
+        }
+
+        function checkProactiveAINotification() {
+            const lastCheckin = localStorage.getItem('ai_checkin_sent_timestamp');
+            const now = Date.now();
+
+            if (lastCheckin && (now - parseInt(lastCheckin)) < 14400000) {
+                return;
+            }
+            
+            const wasUnanswered = localStorage.getItem('ai_checkin_unanswered') === 'true';
+
+            if (wasUnanswered) {
+                sendNotification(
+                    'صديقك الدراسي حزين 😟',
+                    'لم ترد عليّ في المرة السابقة. أنا قلق عليك. كيف هي أخبارك ودراستك؟'
+                );
+            } else {
+                sendNotification(
+                    'صديقك الدراسي يطمئن عليك 👋',
+                    `مرحباً يا ${userData.name}! كيف تسير دراستك؟ هل تحتاج إلى مساعدة في أي شيء؟`
+                );
+            }
+
+            localStorage.setItem('ai_checkin_sent_timestamp', now.toString());
+            localStorage.setItem('ai_checkin_unanswered', 'true');
+        }
+        
+        // --- FEATURES ---
 
         function setupSchedulePage() {
             const scheduleContainer = document.getElementById('full-schedule-container');
@@ -404,6 +525,7 @@
                 return;
             }
             
+            // Logic for 'attended' status
             const now = new Date();
             const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
             const lessonData = scheduleData.find(l => l.subject === subject);
@@ -440,25 +562,22 @@
             }
         }
 
-        // --- IMPROVED --- Optimistic UI update for faster feedback
-        function logAttendance(subject, status, reason = '', lessonTime = 'N/A') {
-            const logStatus = document.getElementById('log-status');
-            
-            // Show immediate feedback
-            logStatus.textContent = `تم تسجيل ${status === 'attended' ? 'حضور' : 'غياب'} بنجاح.`;
-            logStatus.style.color = 'green';
-            setTimeout(() => logStatus.textContent = '', 3000);
 
-            // Perform database write and UI refresh in the background
-            addDoc(collection(db, "users", userData.id, "attendance"), { 
-                subject, 
-                status, 
-                reason, 
-                lessonTime,
-                timestamp: new Date() 
-            }).then(() => {
-                console.log("Attendance logged successfully to Firestore.");
-                // Refresh UI with latest data from server
+        async function logAttendance(subject, status, reason = '', lessonTime = 'N/A') {
+            const logStatus = document.getElementById('log-status');
+            logStatus.textContent = 'جاري الحفظ...';
+            try {
+                const docRef = collection(db, "users", userData.id, "attendance");
+                await addDoc(docRef, { 
+                    subject, 
+                    status, 
+                    reason, 
+                    lessonTime,
+                    timestamp: new Date() 
+                });
+                logStatus.textContent = `تم تسجيل ${status === 'attended' ? 'حضور' : 'غياب'} بنجاح.`;
+                logStatus.style.color = 'green';
+                setTimeout(() => logStatus.textContent = '', 3000);
                 updateAttendancePage();
                 updateTodayLessonsStatus();
                 
@@ -470,11 +589,12 @@
                 if (status === 'absent') {
                     triggerAbsenceFollowUpAI(subject, reason);
                 }
-            }).catch(e => {
+
+            } catch (e) {
                 console.error("Error adding document: ", e);
                 logStatus.textContent = 'حدث خطأ أثناء الحفظ.';
                 logStatus.style.color = 'red';
-            });
+            }
         }
         
         async function displayAttendanceHistory() {
@@ -933,6 +1053,7 @@
                     year: year
                 });
                 await renderPaymentHistoryForDate(new Date(year, month, 1));
+                sendNotification('تم تسجيل الدفع', `تم تسجيل دفع مبلغ ${amount} جنيه لمادة ${subject} بنجاح.`);
             });
         }
         
@@ -944,6 +1065,7 @@
                     const { year, month } = docSnap.data();
                     await deleteDoc(docRef);
                     await renderPaymentHistoryForDate(new Date(year, month, 1));
+                    sendNotification('تم إلغاء الدفع', 'تم إلغاء تسجيل الدفع بنجاح.');
                 }
             });
         }
@@ -973,6 +1095,8 @@
 
             const monthCard = document.getElementById(`month-card-${monthId}`);
             if(monthCard) monthCard.remove();
+            const monthName = new Date(year, month).toLocaleString('ar-EG', { month: 'long' });
+            sendNotification('تم الحذف', `تم نقل سجلات شهر ${monthName} إلى سلة المحذوفات.`);
         }
 
         async function renderRecycleBin() {
@@ -1034,6 +1158,39 @@
             if (document.querySelector('.page-content.active')?.id === 'page-financials') {
                 await renderPaymentHistoryForDate(financialDisplayDate);
             }
+            const monthName = new Date(dataToRestore.year, dataToRestore.month).toLocaleString('ar-EG', { month: 'long' });
+            sendNotification('تم الاسترجاع', `تم استرجاع سجلات شهر ${monthName} بنجاح.`);
+        }
+
+        async function checkDailyPaymentReminders() {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const notificationKey = `daily_payment_reminder_${todayStr}`;
+
+            if (localStorage.getItem(notificationKey)) return;
+
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            
+            const historyRef = collection(db, "users", userData.id, "paymentHistory");
+            const q = query(historyRef, where("year", "==", currentYear), where("month", "==", currentMonth));
+            const querySnapshot = await getDocs(q);
+            const paidSubjects = new Set(querySnapshot.docs.map(d => d.data().subject));
+
+            let unpaidSubjects = [];
+            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
+                const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
+                const docSnap = await getDoc(financialDocRef);
+                const price = docSnap.exists() ? docSnap.data().price : 0;
+                if (price > 0 && !paidSubjects.has(lesson.subject)) {
+                    unpaidSubjects.push(lesson.subject);
+                }
+            }
+
+            if (unpaidSubjects.length > 0) {
+                sendNotification('تذكير يومي بالمصروفات', `لا تنس دفع مصروفات: ${unpaidSubjects.join(', ')}`);
+                localStorage.setItem(notificationKey, 'sent');
+            }
         }
 
         function initializePomodoro() {
@@ -1067,8 +1224,7 @@
                 const seconds = timeLeft % 60;
                 timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 const progress = (totalTime - timeLeft) / totalTime;
-                const circumference = 2 * Math.PI * 45; // 2 * pi * r
-                progressCircle.style.strokeDashoffset = circumference * (1 - progress);
+                progressCircle.style.strokeDashoffset = 283 * (1 - progress);
             };
             
             const resetTimer = () => {
@@ -1100,15 +1256,8 @@
             };
 
             const startTimer = () => {
-                // --- IMPROVED --- Ensure AudioContext is running on start
-                if (Tone.context.state !== 'running') {
-                    Tone.start();
-                }
-                
                 if(isPaused) {
-                    if (Notification.permission === "granted") {
-                        new Notification('مؤقت بومودورو بدأ!', { body: `حان وقت ${statusDisplay.textContent}.` });
-                    }
+                    sendNotification('مؤقت بومودورو بدأ!', `حان وقت ${statusDisplay.textContent}.`);
                 }
                 isPaused = false;
                 startBtn.classList.add('hidden');
@@ -1119,9 +1268,7 @@
                     if (timeLeft < 0) {
                         clearInterval(interval);
                         new Tone.Synth().toDestination().triggerAttackRelease("C5", "0.5");
-                        if (Notification.permission === "granted") {
-                            new Notification('انتهى الوقت!', { body: `انتهى وقت ${statusDisplay.textContent}.` });
-                        }
+                        sendNotification('انتهى الوقت!', `انتهى وقت ${statusDisplay.textContent}.`);
                         switchMode(mode === 'work' ? 'short' : 'work');
                     }
                 }, 1000);
@@ -1269,19 +1416,7 @@
                 }
             });
 
-            document.getElementById('notification-permission-btn').addEventListener('click', () => {
-                 if (!("Notification" in window)) {
-                    alert("This browser does not support desktop notification");
-                } else if (Notification.permission === "granted") {
-                    alert("Notifications are already enabled!");
-                } else if (Notification.permission !== "denied") {
-                    Notification.requestPermission().then(function (permission) {
-                        if (permission === "granted") {
-                            alert("Notifications enabled successfully!");
-                        }
-                    });
-                }
-            });
+            document.getElementById('notification-permission-btn').addEventListener('click', requestNotificationPermission);
             document.getElementById('delete-attendance-btn').addEventListener('click', async () => {
                 showConfirmationModal('هل أنت متأكد من حذف جميع بيانات الحضور؟', async () => {
                     const attendanceRef = collection(db, "users", userData.id, "attendance");
@@ -1621,6 +1756,130 @@
                     });
                 }
             }, true); // Use capture phase to catch event early
+        }
+
+        // --- GOOGLE DRIVE FEATURE ---
+        function initializeDrivePage() {
+            document.getElementById('drive-auth-btn').addEventListener('click', handleAuthClick);
+            document.getElementById('upload-files-btn').addEventListener('click', handleUploadClick);
+
+            // Initialize Google API client
+            gapi.load('client', async () => {
+                await gapi.client.init({
+                    apiKey: GOOGLE_API_KEY,
+                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+                });
+            });
+
+            // Initialize Google Sign-In token client
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: GOOGLE_DRIVE_SCOPE,
+                callback: (tokenResponse) => {
+                    if (tokenResponse && tokenResponse.access_token) {
+                        gapi.client.setToken(tokenResponse);
+                        document.getElementById('drive-auth-view').classList.add('hidden');
+                        document.getElementById('drive-upload-view').classList.remove('hidden');
+                    }
+                },
+            });
+        }
+
+        function handleAuthClick() {
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
+
+        async function handleUploadClick() {
+            const files = document.getElementById('file-input').files;
+            if (files.length === 0) {
+                alert('الرجاء اختيار ملف واحد على الأقل للرفع.');
+                return;
+            }
+
+            const statusDiv = document.getElementById('upload-status');
+            statusDiv.innerHTML = '<p class="text-blue-500">جاري الرفع...</p>';
+
+            try {
+                // 1. Find or create the target folder
+                const folderName = 'صديقي الدراسي - ملفات';
+                let folderId = null;
+
+                const folderQueryResponse = await gapi.client.drive.files.list({
+                    q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
+                    fields: 'files(id, name)',
+                });
+
+                if (folderQueryResponse.result.files.length > 0) {
+                    folderId = folderQueryResponse.result.files[0].id;
+                } else {
+                    const createFolderResponse = await gapi.client.drive.files.create({
+                        resource: {
+                            name: folderName,
+                            mimeType: 'application/vnd.google-apps.folder',
+                        },
+                        fields: 'id',
+                    });
+                    folderId = createFolderResponse.result.id;
+                }
+
+                if (!folderId) {
+                    throw new Error('لم يتم العثور على المجلد أو إنشاؤه.');
+                }
+
+                // 2. Upload each file
+                let successfulUploads = 0;
+                for (const file of files) {
+                    const metadata = {
+                        name: file.name,
+                        parents: [folderId],
+                    };
+
+                    const reader = new FileReader();
+                    reader.readAsArrayBuffer(file);
+                    reader.onload = async () => {
+                        const fileContent = reader.result;
+                        const boundary = '-------314159265358979323846';
+                        const delimiter = `\r\n--${boundary}\r\n`;
+                        const close_delim = `\r\n--${boundary}--`;
+
+                        const multipartRequestBody =
+                            delimiter +
+                            'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+                            JSON.stringify(metadata) +
+                            delimiter +
+                            `Content-Type: ${file.type || 'application/octet-stream'}\r\n` +
+                            'Content-Transfer-Encoding: base64\r\n' +
+                            '\r\n' +
+                            btoa(String.fromCharCode.apply(null, new Uint8Array(fileContent))) +
+                            close_delim;
+
+                        const request = gapi.client.request({
+                            path: '/upload/drive/v3/files',
+                            method: 'POST',
+                            params: { uploadType: 'multipart' },
+                            headers: {
+                                'Content-Type': `multipart/related; boundary=${boundary}`,
+                            },
+                            body: multipartRequestBody,
+                        });
+
+                        try {
+                            await request;
+                            successfulUploads++;
+                            if (successfulUploads === files.length) {
+                                statusDiv.innerHTML = `<p class="text-green-500">تم رفع ${successfulUploads} ملف بنجاح!</p>`;
+                                document.getElementById('file-input').value = ''; // Clear input
+                            }
+                        } catch (err) {
+                             console.error('Error uploading file:', file.name, err);
+                             statusDiv.innerHTML = `<p class="text-red-500">فشل رفع الملف: ${file.name}.</p>`;
+                        }
+                    };
+                }
+            } catch (error) {
+                console.error('An error occurred:', error);
+                statusDiv.innerHTML = `<p class="text-red-500">حدث خطأ: ${error.message}</p>`;
+            }
         }
     </script>
 </body>
