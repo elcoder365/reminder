@@ -159,11 +159,11 @@
         ];
         const dayMapping = { "الأحد": 0, "الاثنين": 1, "الثلاثاء": 2, "الأربعاء": 3, "الخميس": 4, "الجمعة": 5, "السبت": 6 };
         const subjectColors = { 
-            "اللغة العربية": { light: '#fef3c7', dark: '#451a03', base: '#78350f' }, 
-            "اللغة الإنجليزية": { light: '#dbeafe', dark: '#1e3a8a', base: '#1e40af' }, 
-            "العلوم": { light: '#dcfce7', dark: '#14532d', base: '#166534' }, 
-            "الدراسات الاجتماعية": { light: '#ffedd5', dark: '#7c2d12', base: '#9a3412' }, 
-            "الرياضيات": { light: '#ede9fe', dark: '#4c1d95', base: '#5b21b6' } 
+            "اللغة العربية": { light: '#F5B7B1', dark: '#78281F', base: '#C0392B' }, 
+            "اللغة الإنجليزية": { light: '#A9CCE3', dark: '#1A5276', base: '#2980B9' }, 
+            "العلوم": { light: '#D7BDE2', dark: '#5B2C6F', base: '#8E44AD' }, 
+            "الدراسات الاجتماعية": { light: '#F5CBA7', dark: '#9C5418', base: '#E67E22' }, 
+            "الرياضيات": { light: '#A9DFBF', dark: '#196F3D', base: '#27AE60' } 
         };
 
         // --- GLOBAL STATE ---
@@ -202,7 +202,9 @@
 
             document.body.addEventListener('click', () => {
                 requestNotificationPermission();
-                Tone.start();
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
             }, { once: true });
             
             setupNotificationChecks();
@@ -211,7 +213,7 @@
         // --- PAGE HTML INJECTION ---
         function injectPageHTML() {
             document.getElementById('page-schedule').innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8"><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-blue-500 dark:border-blue-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">دروس اليوم</h2><button id="show-tomorrow-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-full hover:bg-blue-600 transition">ماذا يوجد غداً؟</button></div><div id="today-lessons-container" class="space-y-3"><p>جاري تحميل الدروس...</p></div></div><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">الجدول الكامل</h2><button id="toggle-full-schedule-btn" class="text-sm bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-slate-200 py-1 px-3 rounded-full hover:bg-gray-300 dark:hover:bg-slate-600 transition">عرض</button></div><div id="full-schedule-container" class="hidden space-y-4 mt-4"></div></div></div>`;
-            document.getElementById('page-attendance-stats').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="grid grid-cols-1 xl:grid-cols-3 gap-8"><div class="xl:col-span-1"><h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-teal-500 dark:border-teal-400 pb-2">تسجيل الحضور</h2><div id="attendance-logger" class="space-y-3 mt-4"><label for="lesson-select" class="font-semibold">اختر الدرس:</label><select id="lesson-select" class="w-full p-2 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"></select></div><div class="flex gap-2 mt-3"><button data-status="attended" class="log-btn w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">حضور</button><button data-status="absent" class="log-btn w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">غياب</button></div><p id="log-status" class="text-center font-semibold text-sm h-5"></p></div><div class="xl:col-span-2"><h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-purple-500 dark:border-purple-400 pb-2">إحصائيات</h2><div id="enhanced-stats" class="grid grid-cols-2 md:grid-cols-3 gap-2 text-center mb-4"></div><div style="height: 250px;" class="mt-4"><canvas id="attendance-chart"></canvas></div><div id="chart-legend" class="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 border-t dark:border-slate-700 pt-4"></div></div></div><div class="mt-8 border-t dark:border-slate-700 pt-6"><button id="toggle-history-btn" class="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 font-bold py-2 px-4 rounded-lg transition-colors">عرض سجل الحضور التفصيلي</button><div id="attendance-history-container" class="hidden mt-4"><h3 class="text-lg font-bold mb-2">سجل الحصص</h3><div id="attendance-history-list" class="space-y-2 max-h-96 custom-scrollbar overflow-y-auto p-2 bg-slate-100 dark:bg-slate-800 rounded-lg"><p>جاري تحميل السجل...</p></div></div></div></div>`;
+            document.getElementById('page-attendance-stats').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="grid grid-cols-1 xl:grid-cols-3 gap-8"><div class="xl:col-span-1"><h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-teal-500 dark:border-teal-400 pb-2">تسجيل الحضور</h2><div id="attendance-logger" class="space-y-3 mt-4"><label for="lesson-select" class="font-semibold">اختر الدرس:</label><select id="lesson-select" class="w-full p-2 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"></select></div><div class="flex gap-2 mt-3"><button data-status="attended" class="log-btn w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">حضور</button><button data-status="absent" class="log-btn w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">غياب</button></div><p id="log-status" class="text-center font-semibold text-sm h-5"></p></div><div class="xl:col-span-2"><h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-purple-500 dark:border-purple-400 pb-2">إحصائيات</h2><div id="enhanced-stats" class="grid grid-cols-2 md:grid-cols-3 gap-2 text-center mb-4"></div><div style="height: 250px;" class="mt-4"><canvas id="attendance-chart"></canvas></div><div id="chart-legend" class="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 border-t dark:border-slate-700 pt-4"></div></div></div><div id="group-progress-card" class="card p-4 md:p-6 rounded-lg shadow-lg mt-8"></div><div class="mt-8 border-t dark:border-slate-700 pt-6"><button id="toggle-history-btn" class="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 font-bold py-2 px-4 rounded-lg transition-colors">عرض سجل الحضور التفصيلي</button><div id="attendance-history-container" class="hidden mt-4"><h3 class="text-lg font-bold mb-2">سجل الحصص</h3><div id="attendance-history-list" class="space-y-2 max-h-[40rem] custom-scrollbar overflow-y-auto p-2 bg-slate-100 dark:bg-slate-800 rounded-lg"><p>جاري تحميل السجل...</p></div></div></div></div>`;
             document.getElementById('page-financials').innerHTML = `<div class="space-y-8"><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-green-500 dark:border-green-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">إدارة المصاريف</h2><button id="toggle-financials-btn" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><svg class="collapse-icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button></div><div id="financials-list-container" class="collapsible-content"><div id="financials-list" class="space-y-4"><p>جاري تحميل...</p></div></div></div><div id="payment-history-section"></div></div>`;
             document.getElementById('page-ai').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg flex flex-col h-full"><div class="flex justify-between items-center border-b-2 border-green-500 dark:border-green-400 pb-2 mb-4"><h2 class="text-xl md:text-2xl font-bold">المساعد الذكي</h2><button id="clear-chat-btn" class="text-sm bg-red-500 text-white py-1 px-3 rounded-full hover:bg-red-600 transition">مسح المحادثة</button></div><div class="mb-4 flex flex-wrap gap-2 justify-center p-2 rounded-lg bg-slate-100 dark:bg-slate-800"><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="general">عام</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="arabic">عربية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="english">إنجليزية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="science">علوم</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="studies">دراسات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="math">رياضيات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="islamic">دين</button></div><div id="chat-box" class="chat-container custom-scrollbar border dark:border-slate-700 rounded-lg p-4 overflow-y-auto bg-slate-50 dark:bg-slate-800 flex-grow"></div><div class="mt-4 flex gap-2"><input type="text" id="chat-input" class="flex-grow border dark:border-slate-600 rounded-lg p-2 bg-transparent" placeholder="اسألني أي حاجة..."><button id="send-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">أرسل</button></div></div>`;
             document.getElementById('page-files').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-indigo-500 dark:border-indigo-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">ملفاتك الدراسية</h2></div><div class="text-center p-4 md:p-8 border-2 border-dashed dark:border-slate-600 rounded-lg"><img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Google Drive Logo" class="h-16 md:h-20 mx-auto mb-4"><p class="mb-4 text-slate-600 dark:text-slate-400 text-base md:text-lg">احتفظ بملفاتك منظمة وآمنة على Google Drive.</p><p class="mb-6 text-slate-500 dark:text-slate-500 text-sm md:text-base">يمكنك رفع ملخصاتك، واجباتك، ومذكراتك للوصول إليها من أي مكان.</p><button id="google-drive-btn" class="w-full max-w-xs mx-auto bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">الذهاب إلى Google Drive</button><p class="text-xs text-slate-400 mt-3">سيتم فتح Google Drive في نافذة جديدة.</p></div></div>`;
@@ -289,7 +291,16 @@
         }
         
         function setupUserInfo() {
-            const motivationalQuotes = ["النجاح هو مجموع الجهود الصغيرة التي تتكرر يوماً بعد يوم.", "لا تخف من التقدم ببطء، بل خف من الوقوف ساكناً.", "أنت أقوى مما تتخيل، وأذكى مما تعتقد."];
+            const motivationalQuotes = [
+                "النجاح هو مجموع الجهود الصغيرة التي تتكرر يوماً بعد يوم.", "لا تخف من التقدم ببطء، بل خف من الوقوف ساكناً.", "أنت أقوى مما تتخيل، وأذكى مما تعتقد.",
+                "اجعل كل يوم فرصة لتتعلم شيئاً جديداً.", "العلم يضيء العقول، والمثابرة تحقق المستحيل.", "لا يوجد مصعد للنجاح، عليك أن تصعد السلالم درجة درجة.",
+                "كل إنجاز عظيم كان في البداية مجرد حلم.", "لا تنتظر الفرصة، بل اصنعها بنفسك.", "الفشل هو مجرد فرصة للبدء من جديد بذكاء أكبر.",
+                "مستقبلك يعتمد على ما تفعله اليوم، وليس غداً.", "الفرق بين الممكن والمستحيل يكمن في عزيمة الإنسان.", "لا تدع الأمس يستهلك الكثير من اليوم.",
+                "الشخص الذي لم يرتكب خطأ، لم يجرب شيئاً جديداً.", "كن أنت التغيير الذي تريد أن تراه في العالم.", "السر في التقدم هو البدء.",
+                "العبقرية عبارة عن 1% إلهام و99% جهد وعرق.", "إذا استطعت أن تحلم به، فبإمكانك تحقيقه.", "الطريق إلى التميز ليس مزدحماً.",
+                "لا تقارن نفسك بالآخرين، بل قارن نفسك بالشخص الذي كنت عليه بالأمس.", "كل صباح لديك خياران: إما أن تكمل نومك مع أحلامك، أو أن تستيقظ لتحقيقها.",
+                "النجاح ليس نهائياً، والفشل ليس قاتلاً: إنها الشجاعة على مواصلة الطريق هي التي تهم.", "آمن بنفسك، فأنت تعرف أكثر مما تعتقد.", "لا تتوقف عندما تتعب، توقف عندما تنتهي."
+            ];
             const age = calculateAge(userData.birthDate);
             document.getElementById('welcome-message').textContent = `أهلاً بك يا ${userData.name}!`;
             document.getElementById('user-name-sidebar').textContent = userData.name;
@@ -578,18 +589,72 @@
                 historyContainer.innerHTML = '<p class="text-center p-4 text-slate-500 dark:text-slate-400">لا يوجد سجلات بعد.</p>';
                 return;
             }
-            let html = '<ul class="space-y-2">';
+            
+            const recordsBySubject = {};
             querySnapshot.forEach(doc => {
                 const data = doc.data();
-                const timestamp = data.timestamp.toDate();
-                const statusText = data.status === 'attended' ? 'حضور' : 'غياب';
-                const statusColor = data.status === 'attended' ? 'text-green-600' : 'text-red-600';
-                const reasonHtml = data.reason ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">السبب: ${data.reason}</p>` : '';
-                html += `<li class="flex justify-between items-start p-2 bg-white dark:bg-slate-900 rounded-md border dark:border-slate-700"><div><span class="font-semibold">${data.subject}</span> - <span class="font-bold ${statusColor}">${statusText}</span><span class="text-xs text-slate-500 dark:text-slate-400 block">${timestamp.toLocaleString('ar-EG')}</span>${reasonHtml}</div><button data-id="${doc.id}" class="delete-log-btn text-red-400 hover:text-red-600 font-bold text-xl p-1">&times;</button></li>`;
+                if (!recordsBySubject[data.subject]) {
+                    recordsBySubject[data.subject] = [];
+                }
+                recordsBySubject[data.subject].push({ id: doc.id, ...data });
             });
-            historyContainer.innerHTML = html + '</ul>';
+
+            let finalHtml = '';
+            for (const subject in recordsBySubject) {
+                finalHtml += `<h4 class="font-bold text-lg p-2 border-b-2 dark:border-slate-700">${subject}</h4>`;
+                const records = recordsBySubject[subject];
+                const groupSize = 8;
+                let groupCounter = 1;
+                
+                for (let i = 0; i < records.length; i += groupSize) {
+                    const chunk = records.slice(i, i + groupSize);
+                    if (chunk.length === groupSize) {
+                        const firstDate = chunk[chunk.length - 1].timestamp.toDate().toLocaleDateString('ar-EG');
+                        const lastDate = chunk[0].timestamp.toDate().toLocaleDateString('ar-EG');
+                        
+                        finalHtml += `
+                            <div class="mb-2">
+                                <button class="collapsible-group-btn w-full text-right p-3 bg-slate-200 dark:bg-slate-700 rounded-lg flex justify-between items-center">
+                                    <div>
+                                        <p class="font-semibold">المجموعة ${groupCounter} - ${subject}</p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">من ${firstDate} إلى ${lastDate}</p>
+                                    </div>
+                                    <svg class="collapse-icon h-5 w-5 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                </button>
+                                <div class="collapsible-content collapsed p-2 space-y-2 border-r-2 dark:border-slate-600 mr-2">
+                                    ${chunk.map(data => renderSingleHistoryItem(data)).join('')}
+                                </div>
+                            </div>
+                        `;
+                        groupCounter++;
+                    } else {
+                        chunk.forEach(data => {
+                            finalHtml += renderSingleHistoryItem(data);
+                        });
+                    }
+                }
+            }
+
+            historyContainer.innerHTML = finalHtml || '<p class="text-center p-4 text-slate-500 dark:text-slate-400">لا يوجد سجلات بعد.</p>';
+            
             document.querySelectorAll('.delete-log-btn').forEach(btn => btn.addEventListener('click', deleteSingleAttendanceLog));
+            document.querySelectorAll('.collapsible-group-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const content = btn.nextElementSibling;
+                    content.classList.toggle('collapsed');
+                    btn.querySelector('svg').classList.toggle('collapsed');
+                });
+            });
         }
+
+        function renderSingleHistoryItem(data) {
+            const timestamp = data.timestamp.toDate();
+            const statusText = data.status === 'attended' ? 'حضور' : 'غياب';
+            const statusColor = data.status === 'attended' ? 'text-green-600' : 'text-red-600';
+            const reasonHtml = data.reason ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">السبب: ${data.reason}</p>` : '';
+            return `<div class="flex justify-between items-start p-2 bg-white dark:bg-slate-900 rounded-md border dark:border-slate-700"><div><span class="font-semibold">${data.subject}</span> - <span class="font-bold ${statusColor}">${statusText}</span><span class="text-xs text-slate-500 dark:text-slate-400 block">${timestamp.toLocaleString('ar-EG')}</span>${reasonHtml}</div><button data-id="${data.id}" class="delete-log-btn text-red-400 hover:text-red-600 font-bold text-xl p-1">&times;</button></div>`;
+        }
+
 
         async function deleteSingleAttendanceLog(event) {
             const docId = event.target.dataset.id;
@@ -673,6 +738,7 @@
                 }
             });
             generateCustomChartLegend(labels);
+            displayGroupProgress(stats);
         }
         
         function generateCustomChartLegend(labels) {
@@ -687,6 +753,44 @@
             });
         }
         
+        function displayGroupProgress(stats) {
+            const container = document.getElementById('group-progress-card');
+            let html = '<h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2">تقدم المجموعات (كل 8 حصص)</h2><div class="space-y-4">';
+
+            for (const subject in stats) {
+                const total = stats[subject].attended + stats[subject].absent;
+                if (total > 0) {
+                    const groups = Math.floor(total / 8);
+                    const remainder = total % 8;
+                    const percentage = (remainder / 8) * 100;
+                    
+                    let progressText = '';
+                    if (groups > 0) {
+                        progressText += `${groups} ${groups > 1 ? 'مجموعات' : 'مجموعة'}`;
+                        if (remainder > 0) {
+                            progressText += ` و ${remainder} ${remainder > 1 ? 'حصص' : 'حصة'}`;
+                        }
+                    } else {
+                        progressText = `${remainder} ${remainder > 1 ? 'حصص' : 'حصة'} من 8`;
+                    }
+
+                    html += `
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <h4 class="font-semibold">${subject}</h4>
+                                <span class="text-sm font-mono">${progressText}</span>
+                            </div>
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
+                                <div class="h-2.5 rounded-full" style="width: ${percentage}%; background-color: ${subjectColors[subject]?.base || '#a1a1aa'};"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
         function formatTimeDifference(diffMillis, isNextLesson = false) {
             const diffSeconds = Math.abs(diffMillis / 1000);
             const diffMinutes = Math.floor(diffSeconds / 60);
@@ -750,20 +854,19 @@
                 const diffMillis = lesson.date.getTime() - now.getTime();
                 
                 let statusHtml = '';
-                let statusClass = '';
+                let statusClass = 'bg-white dark:bg-slate-800'; // Default background
                 let timeDetailsHtml = '';
-                let backgroundStyle = '';
                 const record = attendanceRecords.get(lesson.subject);
 
                 if (record) {
                     statusHtml = `<p class="font-bold ${record.status === 'attended' ? 'text-green-600' : 'text-red-600'}">${record.status === 'attended' ? 'تم الحضور' : 'غياب'}</p>`;
-                    statusClass = `ring-2 ${record.status === 'attended' ? 'ring-green-500' : 'ring-red-500'}`;
+                    statusClass += ` border-2 ${record.status === 'attended' ? 'border-green-500' : 'border-red-500'}`;
                 } else if (diffMillis < 0) {
-                    statusClass = 'opacity-70';
+                    statusClass += ' opacity-70';
                     statusHtml = `<p class="text-sm font-semibold text-yellow-600 dark:text-yellow-400">فات ولم يسجل</p>`;
                     timeDetailsHtml = `<p class="text-xs text-center mt-2 font-mono text-red-500">${formatTimeDifference(diffMillis)}</p>`;
                 } else if (!nextLessonFound) {
-                    statusClass = 'ring-2 ring-blue-500';
+                    statusClass += ' ring-2 ring-blue-500';
                     statusHtml = `<p class="font-bold text-blue-700 dark:text-blue-300">الدرس القادم</p>`;
                     timeDetailsHtml = formatTimeDifference(diffMillis, true);
                     nextLessonFound = true;
@@ -772,7 +875,7 @@
                     timeDetailsHtml = `<p class="text-xs text-center mt-2 font-mono text-slate-500">${formatTimeDifference(diffMillis)}</p>`;
                 }
                 
-                return `<div class="p-3 rounded-lg ${statusClass} transition-all duration-300" style="${backgroundStyle}">
+                return `<div class="p-3 rounded-lg ${statusClass} transition-all duration-300">
                             <div class="flex justify-between items-center">
                                 <div>
                                     <h3 class="font-semibold">${lesson.subject}</h3>
@@ -1147,7 +1250,6 @@
             const q = query(historyRef, where("year", "==", currentYear), where("month", "==", currentMonth));
             const querySnapshot = await getDocs(q);
             const paidSubjects = new Set(querySnapshot.docs.map(d => d.data().subject));
-
             let unpaidSubjects = [];
             for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
@@ -1227,6 +1329,7 @@
             };
 
             const startTimer = () => {
+                Tone.start(); // Ensure audio context is ready on mobile
                 if(isPaused) {
                     sendNotification('مؤقت بومودورو بدأ!', `حان وقت ${statusDisplay.textContent}.`);
                 }
@@ -1727,150 +1830,6 @@
                     });
                 }
             }, true); // Use capture phase to catch event early
-        }
-
-        // --- GOOGLE DRIVE FEATURE ---
-        function initializeDrivePage() {
-            const authButton = document.getElementById('drive-auth-btn');
-            document.getElementById('upload-files-btn').addEventListener('click', handleUploadClick);
-
-            // Callback function for when GAPI client is ready
-            const gapiReadyCallback = async () => {
-                await gapi.client.init({
-                    // NOTE: The API KEY is often needed for discovery documents, but might not be strictly necessary if only using OAuth tokens.
-                    // apiKey: GOOGLE_API_KEY, 
-                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-                });
-                // Enable the auth button now that the client is ready
-                authButton.disabled = false;
-                authButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                authButton.innerHTML = 'تسجيل الدخول وربط حساب Google Drive';
-                authButton.addEventListener('click', handleAuthClick);
-            };
-
-            // Callback function for when GSI client is ready
-            const gsiReadyCallback = () => {
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: GOOGLE_CLIENT_ID,
-                    scope: GOOGLE_DRIVE_SCOPE,
-                    callback: (tokenResponse) => {
-                        if (tokenResponse && tokenResponse.access_token) {
-                            gapi.client.setToken(tokenResponse);
-                            document.getElementById('drive-auth-view').classList.add('hidden');
-                            document.getElementById('drive-upload-view').classList.remove('hidden');
-                        }
-                    },
-                });
-            };
-
-            // Load the libraries and then call the callbacks
-            gapi.load('client', gapiReadyCallback);
-            google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: gsiReadyCallback
-            });
-        }
-
-
-        function handleAuthClick() {
-            if (tokenClient) {
-                tokenClient.requestAccessToken({ prompt: 'consent' });
-            } else {
-                console.error("Token client not initialized.");
-            }
-        }
-
-        async function handleUploadClick() {
-            const files = document.getElementById('file-input').files;
-            if (files.length === 0) {
-                alert('الرجاء اختيار ملف واحد على الأقل للرفع.');
-                return;
-            }
-
-            const statusDiv = document.getElementById('upload-status');
-            statusDiv.innerHTML = '<p class="text-blue-500">جاري الرفع...</p>';
-
-            try {
-                // 1. Find or create the target folder
-                const folderName = 'صديقي الدراسي - ملفات';
-                let folderId = null;
-
-                const folderQueryResponse = await gapi.client.drive.files.list({
-                    q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
-                    fields: 'files(id, name)',
-                });
-
-                if (folderQueryResponse.result.files.length > 0) {
-                    folderId = folderQueryResponse.result.files[0].id;
-                } else {
-                    const createFolderResponse = await gapi.client.drive.files.create({
-                        resource: {
-                            name: folderName,
-                            mimeType: 'application/vnd.google-apps.folder',
-                        },
-                        fields: 'id',
-                    });
-                    folderId = createFolderResponse.result.id;
-                }
-
-                if (!folderId) {
-                    throw new Error('لم يتم العثور على المجلد أو إنشاؤه.');
-                }
-
-                // 2. Upload each file
-                let successfulUploads = 0;
-                for (const file of files) {
-                    const metadata = {
-                        name: file.name,
-                        parents: [folderId],
-                    };
-
-                    const reader = new FileReader();
-                    reader.readAsArrayBuffer(file);
-                    reader.onload = async () => {
-                        const fileContent = reader.result;
-                        const boundary = '-------314159265358979323846';
-                        const delimiter = `\r\n--${boundary}\r\n`;
-                        const close_delim = `\r\n--${boundary}--`;
-
-                        const multipartRequestBody =
-                            delimiter +
-                            'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-                            JSON.stringify(metadata) +
-                            delimiter +
-                            `Content-Type: ${file.type || 'application/octet-stream'}\r\n` +
-                            'Content-Transfer-Encoding: base64\r\n' +
-                            '\r\n' +
-                            btoa(String.fromCharCode.apply(null, new Uint8Array(fileContent))) +
-                            close_delim;
-
-                        const request = gapi.client.request({
-                            path: '/upload/drive/v3/files',
-                            method: 'POST',
-                            params: { uploadType: 'multipart' },
-                            headers: {
-                                'Content-Type': `multipart/related; boundary=${boundary}`,
-                            },
-                            body: multipartRequestBody,
-                        });
-
-                        try {
-                            await request;
-                            successfulUploads++;
-                            if (successfulUploads === files.length) {
-                                statusDiv.innerHTML = `<p class="text-green-500">تم رفع ${successfulUploads} ملف بنجاح!</p>`;
-                                document.getElementById('file-input').value = ''; // Clear input
-                            }
-                        } catch (err) {
-                             console.error('Error uploading file:', file.name, err);
-                             statusDiv.innerHTML = `<p class="text-red-500">فشل رفع الملف: ${file.name}.</p>`;
-                        }
-                    };
-                }
-            } catch (error) {
-                console.error('An error occurred:', error);
-                statusDiv.innerHTML = `<p class="text-red-500">حدث خطأ: ${error.message}</p>`;
-            }
         }
     </script>
 </body>
