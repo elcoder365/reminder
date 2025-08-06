@@ -223,20 +223,25 @@
         // This global function is called by the YouTube IFrame API script when it's ready
         window.onYouTubeIframeAPIReady = function() {
             try {
-                player = new YT.Player('youtube-player', {
-                    height: '100%',
-                    width: '100%',
-                    videoId: videoToPlayOnReady, // Load the queued video ID if it exists
-                    playerVars: { 'autoplay': 1, 'rel': 0, 'controls': 1 },
-                    events: {
-                        'onReady': (event) => {
-                            // If a video was queued, play it now that the player is ready.
-                            if (videoToPlayOnReady) {
-                                event.target.playVideo();
+                // [تعديل هنا] تأكد من أن المشغل لم يتم إنشاؤه بعد.
+                if (!player) {
+                    player = new YT.Player('youtube-player', {
+                        height: '100%',
+                        width: '100%',
+                        videoId: videoToPlayOnReady, // Load the queued video ID if it exists
+                        playerVars: { 'autoplay': 1, 'rel': 0, 'controls': 1 },
+                        events: {
+                            'onReady': (event) => {
+                                // If a video was queued, play it now that the player is ready.
+                                if (videoToPlayOnReady) {
+                                    event.target.playVideo();
+                                    // قم بمسح قائمة الانتظار بعد التشغيل.
+                                    videoToPlayOnReady = null; 
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                }
             } catch (e) {
                 console.error("Could not create YouTube player", e);
                 const placeholder = document.getElementById('youtube-player-placeholder');
@@ -1344,9 +1349,7 @@
 
             if (!paymentsSnapshot.empty) {
                 const batch = writeBatch(db);
-                paymentsSnapshot.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
+                paymentsSnapshot.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
             }
 
@@ -2544,7 +2547,8 @@
                 }).join('');
             };
             
-            // **YOUTUBE FIX:** This function now handles cases where the player isn't ready.
+            // [تعديل هنا]
+            // هذه الدالة تم تحديثها لضمان التعامل مع المشاكل المتعلقة بتوقيت تحميل مشغل يوتيوب.
             const playVideo = (videoId) => {
                 playerPlaceholder.classList.add('hidden');
                 resultsContainer.classList.add('hidden');
@@ -2555,11 +2559,12 @@
                 if (player && typeof player.loadVideoById === 'function') {
                     player.loadVideoById(videoId);
                 } else {
-                    // If player is not ready, queue the video ID. 
-                    // The onYouTubeIframeAPIReady function will handle creating the player with this ID.
+                    // إذا لم يكن المشغل جاهزًا، قم بتخزين معرف الفيديو.
+                    // دالة onYouTubeIframeAPIReady ستقوم بإنشاء المشغل بهذا المعرف.
                     videoToPlayOnReady = videoId;
-                    // If the YT object exists but player isn't initialized, try to create it again.
-                    // This is a fallback for edge cases.
+                    
+                    // إذا كان كائن YT موجودًا بالفعل، ولكن المشغل لم يتم تهيئته،
+                    // قم باستدعاء الدالة المسؤولة عن ذلك يدويًا كحل احتياطي.
                     if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined' && !player) {
                         window.onYouTubeIframeAPIReady();
                     }
