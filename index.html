@@ -8,6 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <!-- YouTube IFrame API Script -->
+    <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         :root {
             --bg-primary: #f1f5f9; --bg-secondary: #ffffff; --bg-tertiary: #e2e8f0;
@@ -18,7 +20,7 @@
             --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-tertiary: #334155;
             --text-primary: #e2e8f0; --text-secondary: #94a3b8; --border-color: #334155;
         }
-        body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); transition: background-color 0.3s, color 0.3s; }
+        body { font-family: 'Cairo', sans-serif; background: var(--bg-primary); color: var(--text-primary); transition: background 0.5s, color 0.3s; }
         .card { background-color: var(--bg-secondary); border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
         #sidebar { transition: transform 0.3s ease-in-out; transform: translateX(100%); background-color: var(--bg-secondary); }
         #sidebar.open { transform: translateX(0); }
@@ -27,7 +29,7 @@
         #sidebar-overlay { transition: opacity 0.3s ease-in-out; }
         .sidebar-link { color: var(--text-secondary); transition: all 0.2s ease; transform: scale(1); }
         .sidebar-link:hover { background-color: var(--accent-color); color: white; transform: scale(1.05); }
-        .sidebar-link.active { background-color: #2563eb; color: white !important; box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39); }
+        .sidebar-link.active { background-color: var(--accent-color); color: white !important; box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39); }
         .sidebar-link svg { transition: all 0.2s ease; }
         .sidebar-link:hover svg, .sidebar-link.active svg { filter: brightness(0) invert(1); }
         .page-content { display: none; }
@@ -53,13 +55,43 @@
         .collapse-icon.collapsed { transform: rotate(-90deg); }
         .mode-button { transition: all 0.2s ease-in-out; }
         .mode-button.active { background-color: var(--accent-color); color: white; box-shadow: 0 0 0 2px var(--accent-color); }
+        .tts-button { background: none; border: none; cursor: pointer; font-size: 1.2rem; transition: transform 0.2s; }
+        .tts-button:hover { transform: scale(1.2); }
+        .tts-button.loading { animation: pulse 1.5s infinite; }
+        .color-swatch-wrapper { position: relative; }
+        .color-swatch { width: 2.5rem; height: 2.5rem; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .color-swatch.selected { border-color: var(--accent-color); transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .color-swatch.gradient-selected { border-color: #FBBF24; box-shadow: 0 0 10px #FBBF24, 0 0 5px #FBBF24 inset; transform: scale(1.1); }
+        .delete-swatch-btn { position: absolute; top: -5px; right: -5px; background-color: var(--danger-color); color: white; width: 1.2rem; height: 1.2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; border: 1px solid white; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
+        .color-swatch-wrapper:hover .delete-swatch-btn { opacity: 1; }
+        .pomodoro-progress { stroke: var(--accent-color); }
     </style>
     <script>
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        // Apply theme from localStorage before DOM content loads to prevent flash of default theme
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const savedAccent = localStorage.getItem('accentColor');
+            const savedAppTheme = localStorage.getItem('appTheme');
+
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            if (savedAccent) {
+                document.documentElement.style.setProperty('--accent-color', savedAccent);
+            }
+            
+            if (savedAppTheme) {
+                const theme = JSON.parse(savedAppTheme);
+                if (theme.type === 'solid') {
+                    document.body.style.background = theme.color1;
+                } else if (theme.type === 'gradient') {
+                    document.body.style.background = `linear-gradient(to bottom right, ${theme.color1}, ${theme.color2})`;
+                }
+            }
+        })();
     </script>
 </head>
 <body class="text-slate-800 dark:bg-slate-900 dark:text-slate-200">
@@ -72,7 +104,7 @@
             <aside id="sidebar" class="fixed top-0 right-0 h-full w-64 p-4 shadow-lg z-40">
                 <div class="flex flex-col h-full">
                     <div class="text-center border-b dark:border-slate-700 pb-4 mb-4">
-                        <h1 class="text-2xl font-bold text-blue-600">صديقي الدراسي</h1>
+                        <h1 class="text-2xl font-bold" style="color: var(--accent-color);">صديقي الدراسي</h1>
                         <p class="text-sm text-slate-500 dark:text-slate-400">مرحباً, <span id="user-name-sidebar"></span>!</p>
                     </div>
                     <nav class="flex-grow custom-scrollbar overflow-y-auto">
@@ -82,7 +114,7 @@
                             <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-attendance-stats"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg><span>الحضور والإحصائيات</span></a></li>
                             <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-financials"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01M12 6v-1h4a2 2 0 012 2v11a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h4z" /></svg><span>الماليات</span></a></li>
                             <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-ai"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg><span>المساعد الذكي</span></a></li>
-                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-music"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 6l12-3" /></svg><span>موسيقى حماسية</span></a></li>
+                            <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-music"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg><span>تشغيل فيديو</span></a></li>
                             <li><a href="#" class="sidebar-link flex items-center p-3 rounded-lg" data-page="page-files"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><span>ملفاتك الدراسية</span></a></li>
                         </ul>
                         <p class="px-3 text-xs font-semibold text-slate-400 uppercase mt-6 mb-2">أدوات الإنتاجية</p>
@@ -106,10 +138,10 @@
                          <button id="menu-button" class="text-slate-500 hover:text-blue-600 focus:outline-none p-2">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
                         </button>
-                        <h1 id="welcome-message" class="hidden md:block text-xl md:text-2xl font-bold text-blue-600"></h1>
+                        <h1 id="welcome-message" class="hidden md:block text-xl md:text-2xl font-bold" style="color: var(--accent-color);"></h1>
                     </div>
-                    <div class="text-center bg-blue-50 dark:bg-slate-800 text-blue-800 dark:text-blue-300 p-2 rounded-lg shadow-inner">
-                        <p id="motivational-quote" class="text-sm md:text-base italic"></p>
+                    <div class="text-center bg-blue-50 dark:bg-slate-800 p-2 rounded-lg shadow-inner" style="background-color: var(--bg-tertiary);">
+                        <p id="motivational-quote" class="text-sm md:text-base italic" style="color: var(--accent-color);"></p>
                     </div>
                 </header>
 
@@ -148,6 +180,7 @@
         };
         
         const GEMINI_API_KEY = "AIzaSyAq0ZvO25ujyl5kxwN6TIrB2xBP9yK4tw0"; 
+        const YOUTUBE_API_KEY = "AIzaSyAWfC5XoPFm7egEWwdXYxswKgiA4KlU1FE";
         
         const userData = { name: "سيف الدين", birthDate: "2011-03-19", id: "seif_eldeen_user" };
         const scheduleData = [
@@ -161,15 +194,19 @@
         const subjectColors = { 
             "اللغة العربية": { light: '#F5B7B1', dark: '#78281F', base: '#C0392B' }, 
             "اللغة الإنجليزية": { light: '#A9CCE3', dark: '#1A5276', base: '#2980B9' }, 
+            "الرياضيات": { light: '#A9DFBF', dark: '#196F3D', base: '#27AE60' },
             "العلوم": { light: '#D7BDE2', dark: '#5B2C6F', base: '#8E44AD' }, 
             "الدراسات الاجتماعية": { light: '#F5CBA7', dark: '#9C5418', base: '#E67E22' }, 
-            "الرياضيات": { light: '#A9DFBF', dark: '#196F3D', base: '#27AE60' } 
         };
 
         // --- GLOBAL STATE ---
         let attendanceChart = null;
         let financialDisplayDate = new Date();
         let db;
+        let player; // YouTube Player instance
+        let videoToPlayOnReady = null; // Holds video ID if clicked before player is ready
+        let isGradientMode = false;
+        let gradientSelection = [];
 
         // --- INITIALIZATION ---
         try {
@@ -178,9 +215,34 @@
             console.log("Firebase initialized successfully.");
         } catch (e) {
             console.error("Firebase initialization failed:", e);
-            alert("فشل الاتصال بقاعدة البيانات. الرجاء التأكد من صحة بيانات Firebase في الكود.");
+            showConfirmationModal("فشل الاتصال بقاعدة البيانات. الرجاء التأكد من صحة بيانات Firebase في الكود.", () => {});
         }
         
+        // This global function is called by the YouTube IFrame API script when it's ready
+        window.onYouTubeIframeAPIReady = function() {
+            try {
+                player = new YT.Player('youtube-player', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoToPlayOnReady, // Load the queued video ID if it exists
+                    playerVars: { 'autoplay': 1, 'rel': 0, 'controls': 1 },
+                    events: {
+                        'onReady': (event) => {
+                            // If a video was queued, play it now that the player is ready.
+                            if (videoToPlayOnReady) {
+                                event.target.playVideo();
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Could not create YouTube player", e);
+                const placeholder = document.getElementById('youtube-player-placeholder');
+                if(placeholder) placeholder.textContent = "فشل تحميل مشغل الفيديو.";
+            }
+        };
+
+
         document.addEventListener('DOMContentLoaded', () => {
             if (db) {
                 initializeAppWithData();
@@ -212,41 +274,58 @@
 
         // --- PAGE HTML INJECTION ---
         function injectPageHTML() {
-            document.getElementById('page-schedule').innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8"><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-blue-500 dark:border-blue-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">دروس اليوم</h2><button id="show-tomorrow-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-full hover:bg-blue-600 transition">ماذا يوجد غداً؟</button></div><div id="today-lessons-container" class="space-y-3"><p>جاري تحميل الدروس...</p></div></div><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">الجدول الكامل</h2><button id="toggle-full-schedule-btn" class="text-sm bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-slate-200 py-1 px-3 rounded-full hover:bg-gray-300 dark:hover:bg-slate-600 transition">عرض</button></div><div id="full-schedule-container" class="hidden space-y-4 mt-4"></div></div></div>`;
+            document.getElementById('page-schedule').innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8"><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 pb-2" style="border-color: var(--accent-color);"><h2 class="text-xl md:text-2xl font-bold">دروس اليوم</h2><button id="show-tomorrow-btn" class="text-sm text-white py-1 px-3 rounded-full transition" style="background-color: var(--accent-color);">ماذا يوجد غداً؟</button></div><div id="today-lessons-container" class="space-y-3"><p>جاري تحميل الدروس...</p></div></div><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">الجدول الكامل</h2><button id="toggle-full-schedule-btn" class="text-sm bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-slate-200 py-1 px-3 rounded-full hover:bg-gray-300 dark:hover:bg-slate-600 transition">عرض</button></div><div id="full-schedule-container" class="hidden space-y-4 mt-4"></div></div></div>`;
             document.getElementById('page-attendance-stats').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="grid grid-cols-1 xl:grid-cols-3 gap-8"><div class="xl:col-span-1"><h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-teal-500 dark:border-teal-400 pb-2">تسجيل الحضور</h2><div id="attendance-logger" class="space-y-3 mt-4"><label for="lesson-select" class="font-semibold">اختر الدرس:</label><select id="lesson-select" class="w-full p-2 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"></select></div><div class="flex gap-2 mt-3"><button data-status="attended" class="log-btn w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">حضور</button><button data-status="absent" class="log-btn w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">غياب</button></div><p id="log-status" class="text-center font-semibold text-sm h-5"></p></div><div class="xl:col-span-2"><h2 class="text-xl md:text-2xl font-bold mb-4 border-b-2 border-purple-500 dark:border-purple-400 pb-2">إحصائيات</h2><div id="enhanced-stats" class="grid grid-cols-2 md:grid-cols-3 gap-2 text-center mb-4"></div><div style="height: 250px;" class="mt-4"><canvas id="attendance-chart"></canvas></div><div id="chart-legend" class="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 border-t dark:border-slate-700 pt-4"></div></div></div><div id="group-progress-card" class="card p-4 md:p-6 rounded-lg shadow-lg mt-8"></div><div class="mt-8 border-t dark:border-slate-700 pt-6"><button id="toggle-history-btn" class="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 font-bold py-2 px-4 rounded-lg transition-colors">عرض سجل الحضور التفصيلي</button><div id="attendance-history-container" class="hidden mt-4"><h3 class="text-lg font-bold mb-2">سجل الحصص</h3><div id="attendance-history-list" class="space-y-2 max-h-[40rem] custom-scrollbar overflow-y-auto p-2 bg-slate-100 dark:bg-slate-800 rounded-lg"><p>جاري تحميل السجل...</p></div></div></div></div>`;
             document.getElementById('page-financials').innerHTML = `<div class="space-y-8"><div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-green-500 dark:border-green-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">إدارة المصاريف</h2><button id="toggle-financials-btn" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><svg class="collapse-icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button></div><div id="financials-list-container" class="collapsible-content"><div id="financials-list" class="space-y-4"><p>جاري تحميل...</p></div></div></div><div id="payment-history-section"></div></div>`;
-            document.getElementById('page-ai').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg flex flex-col h-full"><div class="flex justify-between items-center border-b-2 border-green-500 dark:border-green-400 pb-2 mb-4"><h2 class="text-xl md:text-2xl font-bold">المساعد الذكي</h2><button id="clear-chat-btn" class="text-sm bg-red-500 text-white py-1 px-3 rounded-full hover:bg-red-600 transition">مسح المحادثة</button></div><div class="mb-4 flex flex-wrap gap-2 justify-center p-2 rounded-lg bg-slate-100 dark:bg-slate-800"><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="general">عام</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="arabic">عربية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="english">إنجليزية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="science">علوم</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="studies">دراسات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="math">رياضيات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="islamic">دين</button></div><div id="chat-box" class="chat-container custom-scrollbar border dark:border-slate-700 rounded-lg p-4 overflow-y-auto bg-slate-50 dark:bg-slate-800 flex-grow"></div><div class="mt-4 flex gap-2"><input type="text" id="chat-input" class="flex-grow border dark:border-slate-600 rounded-lg p-2 bg-transparent" placeholder="اسألني أي حاجة..."><button id="send-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">أرسل</button></div></div>`;
-            document.getElementById('page-files').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-indigo-500 dark:border-indigo-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">ملفاتك الدراسية</h2></div><div class="text-center p-4 md:p-8 border-2 border-dashed dark:border-slate-600 rounded-lg"><img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Google Drive Logo" class="h-16 md:h-20 mx-auto mb-4"><p class="mb-4 text-slate-600 dark:text-slate-400 text-base md:text-lg">احتفظ بملفاتك منظمة وآمنة على Google Drive.</p><p class="mb-6 text-slate-500 dark:text-slate-500 text-sm md:text-base">يمكنك رفع ملخصاتك، واجباتك، ومذكراتك للوصول إليها من أي مكان.</p><button id="google-drive-btn" class="w-full max-w-xs mx-auto bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">الذهاب إلى Google Drive</button><p class="text-xs text-slate-400 mt-3">سيتم فتح Google Drive في نافذة جديدة.</p></div></div>`;
-            document.getElementById('page-pomodoro').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-md mx-auto text-center"><h2 class="text-2xl font-bold mb-6 border-b-2 border-red-500 dark:border-red-400 pb-2">مؤقت بومودورو</h2><div class="relative w-48 h-48 mx-auto mb-6"><svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-slate-200 dark:text-slate-700" stroke-width="7" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle id="pomodoro-progress-circle" class="pomodoro-progress text-red-500" stroke-width="7" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%;" /></svg><div id="pomodoro-time" class="absolute inset-0 flex items-center justify-center text-4xl font-bold">25:00</div></div><div id="pomodoro-status" class="mb-6 font-semibold text-lg">وقت التركيز</div><div class="flex justify-center gap-4"><button id="pomodoro-start" class="bg-red-500 text-white px-8 py-2 rounded-lg font-bold transition-transform hover:scale-105">ابدأ</button><button id="pomodoro-pause" class="bg-yellow-500 text-white px-8 py-2 rounded-lg font-bold hidden">إيقاف مؤقت</button><button id="pomodoro-reset" class="bg-gray-500 text-white px-8 py-2 rounded-lg font-bold">إعادة ضبط</button></div><div class="mt-6 border-t dark:border-slate-700 pt-4 space-y-2"><h3 class="font-semibold">تخصيص الأوقات (بالدقائق)</h3><div class="flex justify-around gap-2"><div class="flex-1"><label for="work-time-input" class="text-sm">تركيز</label><input type="number" id="work-time-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="short-break-input" class="text-sm">راحة قصيرة</label><input type="number" id="short-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="long-break-input" class="text-sm">راحة طويلة</label><input type="number" id="long-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div></div><button id="save-pomodoro-settings" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded-md text-sm">حفظ الإعدادات</button></div></div>`;
-            document.getElementById('page-tasks').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><div class="flex justify-between items-center mb-4 border-b-2 border-yellow-500 dark:border-yellow-400 pb-2"><h2 class="text-2xl font-bold">قائمة المهام</h2><div class="flex gap-2 items-center"><label for="task-filter" class="text-sm">عرض:</label><select id="task-filter" class="text-sm p-1 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"><option value="all">الكل</option><option value="pending">قيد التنفيذ</option><option value="completed">مكتملة</option></select></div></div><form id="task-form" class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4"><input type="text" id="task-input" class="md:col-span-4 border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600" placeholder="أضف مهمة جديدة..." required><div class="flex items-center gap-2"><label for="task-due-time" class="text-sm">الوقت:</label><input type="time" id="task-due-time" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600 w-full"></div><select id="task-priority" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600"><option value="low">أولوية منخفضة</option><option value="medium" selected>أولوية متوسطة</option><option value="high">أولوية عالية</option></select><button type="submit" class="md:col-span-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">أضف مهمة</button></form><div id="task-list" class="space-y-2"><p>جاري تحميل المهام...</p></div></div>`;
-            document.getElementById('page-settings').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2">الإعدادات</h2><div class="space-y-6"><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg flex justify-between items-center"><div><p class="font-semibold">الوضع الليلي</p><p class="text-sm text-slate-600 dark:text-slate-400">لتجربة مريحة للعين في الإضاءة المنخفضة.</p></div><label class="switch"><input type="checkbox" id="dark-mode-toggle"><span class="slider"></span></label></div><div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg"><p class="font-semibold">إدارة الإشعارات</p><p class="text-sm text-slate-600 dark:text-slate-400 mb-2">يمكنك تفعيل أو إلغاء تفعيل الإشعارات من إعدادات المتصفح.</p><button id="notification-permission-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">طلب إذن الإشعارات</button></div><div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 p-4 rounded-lg"><p class="font-semibold text-blue-800 dark:text-blue-300">سلة محذوفات المدفوعات</p><p class="text-sm text-blue-600 dark:text-blue-400 mb-2">يمكنك استرجاع سجلات الشهور المحذوفة من هنا.</p><div id="recycle-bin-container" class="space-y-2 mt-2"><p class="text-xs text-slate-500">سلة المحذوفات فارغة.</p></div></div><div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 p-4 rounded-lg"><p class="font-semibold text-red-800 dark:text-red-300">منطقة الخطر</p><p class="text-sm text-red-600 dark:text-red-400 mb-2">سيؤدي هذا إلى حذف جميع سجلات الحضور والغياب نهائيًا. لا يمكن التراجع عن هذا الإجراء.</p><button id="delete-attendance-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">حذف كل السجلات</button></div></div></div>`;
+            document.getElementById('page-ai').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg flex flex-col h-full"><div class="flex justify-between items-center border-b-2 pb-2 mb-4" style="border-color: var(--accent-color);"><h2 class="text-xl md:text-2xl font-bold">المساعد الذكي</h2><button id="clear-chat-btn" class="text-sm bg-red-500 text-white py-1 px-3 rounded-full hover:bg-red-600 transition">مسح المحادثة</button></div><div class="mb-4 flex flex-wrap gap-2 justify-center p-2 rounded-lg bg-slate-100 dark:bg-slate-800"><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="general">عام</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="summarize">تلخيص</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="arabic">عربية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="english">إنجليزية</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="science">علوم</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="studies">دراسات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="math">رياضيات</button><button class="mode-button px-3 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-sm md:text-base" data-mode="islamic">دين</button></div><div id="chat-box" class="chat-container custom-scrollbar border dark:border-slate-700 rounded-lg p-4 overflow-y-auto bg-slate-50 dark:bg-slate-800 flex-grow"></div><div class="mt-4 flex gap-2"><input type="text" id="chat-input" class="flex-grow border dark:border-slate-600 rounded-lg p-2 bg-transparent" placeholder="اسألني أي حاجة..."><button id="send-button" class="text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105" style="background-color: var(--accent-color);">أرسل</button></div></div>`;
+            document.getElementById('page-files').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4 border-b-2 border-indigo-500 dark:border-indigo-400 pb-2"><h2 class="text-xl md:text-2xl font-bold">ملفاتك الدراسية</h2></div><div class="text-center p-4 md:p-8 border-2 border-dashed dark:border-slate-600 rounded-lg"><img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Google Drive Logo" class="h-16 md:h-20 mx-auto mb-4"><p class="mb-4 text-slate-600 dark:text-slate-400 text-base md:text-lg">احتفظ بملفاتك منظمة وآمنة على Google Drive.</p><p class="mb-6 text-slate-500 dark:text-slate-500 text-sm md:text-base">يمكنك رفع ملخصاتك، واجباتك، ومذكراتك للوصول إليها من أي مكان.</p><a href="https://drive.google.com" target="_blank" id="google-drive-btn" class="inline-block w-full max-w-xs mx-auto bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">الذهاب إلى Google Drive</a><p class="text-xs text-slate-400 mt-3">سيتم فتح Google Drive في نافذة جديدة.</p></div></div>`;
+            document.getElementById('page-pomodoro').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-md mx-auto text-center"><h2 class="text-2xl font-bold mb-6 border-b-2 pb-2" style="border-color: var(--accent-color);">مؤقت بومودورو</h2><div class="relative w-48 h-48 mx-auto mb-6"><svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-slate-200 dark:text-slate-700" stroke-width="7" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle id="pomodoro-progress-circle" class="pomodoro-progress" stroke-width="7" stroke-linecap="round" fill="transparent" r="45" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%; stroke-dasharray: 283; stroke-dashoffset: 283;" /></svg><div id="pomodoro-time" class="absolute inset-0 flex items-center justify-center text-4xl font-bold">25:00</div></div><div id="pomodoro-status" class="mb-6 font-semibold text-lg">وقت التركيز</div><div class="flex justify-center gap-4"><button id="pomodoro-start" class="text-white px-8 py-2 rounded-lg font-bold transition-transform hover:scale-105" style="background-color: var(--accent-color);">ابدأ</button><button id="pomodoro-pause" class="bg-yellow-500 text-white px-8 py-2 rounded-lg font-bold hidden">إيقاف مؤقت</button><button id="pomodoro-reset" class="bg-gray-500 text-white px-8 py-2 rounded-lg font-bold">إعادة ضبط</button></div><div class="mt-6 border-t dark:border-slate-700 pt-4 space-y-2"><h3 class="font-semibold">تخصيص الأوقات (بالدقائق)</h3><div class="flex justify-around gap-2"><div class="flex-1"><label for="work-time-input" class="text-sm">تركيز</label><input type="number" id="work-time-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="short-break-input" class="text-sm">راحة قصيرة</label><input type="number" id="short-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-1"><label for="long-break-input" class="text-sm">راحة طويلة</label><input type="number" id="long-break-input" class="w-full p-1 border rounded-md text-center dark:bg-slate-700 dark:border-slate-600"></div></div><button id="save-pomodoro-settings" class="mt-2 text-white px-4 py-1 rounded-md text-sm" style="background-color: var(--accent-color);">حفظ الإعدادات</button></div></div>`;
+            document.getElementById('page-tasks').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><div class="flex justify-between items-center mb-4 border-b-2 border-yellow-500 dark:border-yellow-400 pb-2"><h2 class="text-2xl font-bold">قائمة المهام</h2><div class="flex gap-2 items-center"><label for="task-filter" class="text-sm">عرض:</label><select id="task-filter" class="text-sm p-1 border rounded-md bg-transparent dark:bg-slate-800 dark:border-slate-600"><option value="all">الكل</option><option value="pending">قيد التنفيذ</option><option value="completed">مكتملة</option></select></div></div><form id="task-form" class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4"><input type="text" id="task-input" class="md:col-span-4 border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600" placeholder="أضف مهمة جديدة..." required><div class="flex items-center gap-2"><label for="task-due-time" class="text-sm">الوقت:</label><input type="time" id="task-due-time" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600 w-full"></div><select id="task-priority" class="border rounded-lg p-2 dark:bg-slate-700 dark:border-slate-600"><option value="low">أولوية منخفضة</option><option value="medium" selected>أولوية متوسطة</option><option value="high">أولوية عالية</option></select><button type="submit" class="md:col-span-2 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105" style="background-color: var(--accent-color);">أضف مهمة</button></form><div id="task-list" class="space-y-2"><p>جاري تحميل المهام...</p></div></div>`;
+            document.getElementById('page-settings').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg max-w-2xl mx-auto"><h2 class="text-2xl font-bold mb-4 border-b-2 border-gray-500 dark:border-gray-400 pb-2">الإعدادات</h2><div class="space-y-6">
+                <div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg">
+                    <p class="font-semibold mb-2">مظهر التطبيق (الخلفية)</p>
+                    <div id="theme-swatches-container" class="flex flex-wrap gap-3 mb-4"></div>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <button id="combine-colors-btn" class="flex-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-bold py-2 px-4 rounded-lg transition-colors">دمج لونين</button>
+                        <button id="reset-theme-btn" class="flex-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-bold py-2 px-4 rounded-lg transition-colors">إعادة تعيين المظهر</button>
+                    </div>
+                    <p id="gradient-mode-feedback" class="text-amber-400 text-sm mt-2 h-4 text-center"></p>
+                </div>
+                <div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg">
+                     <p class="font-semibold mb-2">اللون الرئيسي (للأزرار والعناوين)</p>
+                     <div id="accent-color-swatches-container" class="flex flex-wrap gap-3 mb-4"></div>
+                     <div class="flex gap-2">
+                        <button id="reset-accent-btn" class="flex-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-bold py-2 px-4 rounded-lg transition-colors">إعادة تعيين اللون</button>
+                     </div>
+                </div>
+                <div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg flex justify-between items-center"><div><p class="font-semibold">الوضع الليلي</p><p class="text-sm text-slate-600 dark:text-slate-400">لتجربة مريحة للعين.</p></div><label class="switch"><input type="checkbox" id="dark-mode-toggle"><span class="slider"></span></label></div>
+                <div class="bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-lg"><p class="font-semibold">إدارة الإشعارات</p><p class="text-sm text-slate-600 dark:text-slate-400 mb-2">يمكنك تفعيل أو إلغاء الإشعارات.</p><button id="notification-permission-btn" class="text-white px-4 py-2 rounded-lg text-sm font-bold" style="background-color: var(--accent-color);">طلب إذن الإشعارات</button></div>
+                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 p-4 rounded-lg"><p class="font-semibold text-blue-800 dark:text-blue-300">سلة محذوفات المدفوعات</p><p class="text-sm text-blue-600 dark:text-blue-400 mb-2">استرجع سجلات الشهور المحذوفة.</p><div id="recycle-bin-container" class="space-y-2 mt-2"><p class="text-xs text-slate-500">سلة المحذوفات فارغة.</p></div></div>
+                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 p-4 rounded-lg"><p class="font-semibold text-red-800 dark:text-red-300">منطقة الخطر</p><p class="text-sm text-red-600 dark:text-red-400 mb-2">حذف جميع سجلات الحضور والغياب نهائيًا.</p><button id="delete-attendance-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">حذف كل السجلات</button></div>
+            </div></div>`;
             document.getElementById('page-music').innerHTML = `<div class="card p-4 md:p-6 rounded-lg shadow-lg">
-                <h2 class="text-2xl font-bold mb-4 border-b-2 border-pink-500 dark:border-pink-400 pb-2">موسيقى حماسية للمذاكرة</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">ملاحظة: للحصول على التجربة الكاملة وتشغيل الأغاني كاملة، قد تحتاج إلى تسجيل الدخول إلى حساب Spotify في متصفحك.</p>
-                <div class="space-y-4">
-                    <div class="spotify-player-wrapper">
-                        <h3 class="font-semibold mb-2">Believer - Imagine Dragons</h3>
-                        <iframe class="spotify-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/track/0pqnGHJpmpx2efrCaLqsgn?utm_source=generator" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                <h2 class="text-2xl font-bold mb-4 border-b-2 border-pink-500 dark:border-pink-400 pb-2">تشغيل فيديو للمذاكرة</h2>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="youtube-search-input" class="flex-grow border dark:border-slate-600 rounded-lg p-2 bg-transparent" placeholder="ابحث عن أغنية أو موسيقى على يوتيوب...">
+                    <button id="youtube-search-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-transform hover:scale-105">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                    </button>
+                </div>
+                <div id="youtube-player-container" class="relative mb-4 rounded-lg overflow-hidden bg-black aspect-video">
+                    <div id="youtube-player" class="w-full h-full"></div>
+                    <div id="youtube-player-placeholder" class="absolute inset-0 flex items-center justify-center text-slate-400">
+                        <span>اختر فيديو لتشغيله هنا</span>
                     </div>
-                    <div class="spotify-player-wrapper">
-                        <h3 class="font-semibold mb-2">أغنية حماسية مقترحة</h3>
-                        <iframe class="spotify-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/track/7GhIk7Il098yCjg4BQjzvb?utm_source=generator" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-                    </div>
-                    <div class="spotify-player-wrapper">
-                        <h3 class="font-semibold mb-2">قائمة تشغيل للتركيز (Lofi Beats)</h3>
-                        <iframe class="spotify-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DWWQRwui0ExPn?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-                    </div>
-                    <div class="spotify-player-wrapper">
-                        <h3 class="font-semibold mb-2">موسيقى إلكترونية للبرمجة والدراسة</h3>
-                        <iframe class="spotify-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DX5trt9i14X7j?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-                    </div>
-                     <div class="spotify-player-wrapper">
-                        <h3 class="font-semibold mb-2">قائمة تشغيل حماسية (Gym & Workout)</h3>
-                        <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DX76Wlfdnj7AP?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-                    </div>
+                </div>
+                <div id="youtube-controls" class="hidden flex-wrap items-center justify-center gap-4 mb-4 p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                    <button id="toggle-results-btn" class="text-white font-bold py-2 px-4 rounded-lg text-sm" style="background-color: var(--accent-color);">إظهار قائمة الفيديوهات</button>
+                </div>
+                <div id="youtube-results-container" class="space-y-2 max-h-[50vh] custom-scrollbar overflow-y-auto">
+                    <p class="text-center text-slate-500 p-4">ابحث عن فيديو لتبدأ</p>
                 </div>
             </div>`;
         }
+
 
         // --- NAVIGATION & UI ---
         function setupNavigation() {
@@ -320,7 +399,7 @@
 
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
-                alert("هذا المتصفح لا يدعم الإشعارات.");
+                showConfirmationModal("هذا المتصفح لا يدعم الإشعارات.", () => {});
                 return;
             }
             if (Notification.permission !== "granted") {
@@ -341,14 +420,21 @@
             }
         }
 
-        function playAlarmSound() {
+        function playSound(type) {
             try {
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
                 const synth = new Tone.Synth().toDestination();
                 const now = Tone.now();
-                synth.triggerAttackRelease("G5", "0.2", now);
-                synth.triggerAttackRelease("G5", "0.2", now + 0.3);
+                if (type === 'task-complete') {
+                    synth.triggerAttackRelease("C5", "0.1", now);
+                    synth.triggerAttackRelease("G5", "0.1", now + 0.1);
+                } else if (type === 'task-add') {
+                    synth.triggerAttackRelease("C4", "0.1", now);
+                }
             } catch(e) {
-                console.error("Could not play sound. User may not have interacted with the page yet.", e);
+                console.error("Could not play sound.", e);
             }
         }
 
@@ -376,7 +462,7 @@
                                 if (!localStorage.getItem(key)) {
                                     sendNotification(`تذكير بدرس ${lesson.subject}`, `الدرس ${r.text}`);
                                     if (r.sound) {
-                                        playAlarmSound();
+                                        playSound('reminder');
                                     }
                                     localStorage.setItem(key, 'sent');
                                 }
@@ -456,8 +542,8 @@
             });
 
             document.getElementById('show-tomorrow-btn').addEventListener('click', displayTomorrowLessons);
-            document.getElementById('early-log-modal').innerHTML = `<div class="modal-content"><h3 class="text-xl font-bold mb-4">تأكيد التسجيل</h3><p id="early-log-message" class="mb-4"></p><textarea id="early-log-reason" class="w-full p-2 border rounded-md mb-4 dark:bg-slate-700 dark:border-slate-600" rows="3" placeholder="يمكنك كتابة السبب هنا (اختياري)..."></textarea><div class="flex justify-end gap-2"><button id="cancel-early-log" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500 rounded-md">إلغاء</button><button id="confirm-early-log" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">تأكيد التسجيل</button></div></div>`;
-            document.getElementById('tomorrow-modal').innerHTML = `<div class="modal-content"><h3 class="text-xl font-bold mb-4">دروس الغد</h3><div id="tomorrow-lessons-list" class="space-y-2"></div><div class="flex justify-end mt-4"><button id="close-tomorrow-modal" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md">إغلاق</button></div></div>`;
+            document.getElementById('early-log-modal').innerHTML = `<div class="modal-content"><h3 class="text-xl font-bold mb-4">تأكيد التسجيل</h3><p id="early-log-message" class="mb-4"></p><textarea id="early-log-reason" class="w-full p-2 border rounded-md mb-4 dark:bg-slate-700 dark:border-slate-600" rows="3" placeholder="يمكنك كتابة السبب هنا (اختياري)..."></textarea><div class="flex justify-end gap-2"><button id="cancel-early-log" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500 rounded-md">إلغاء</button><button id="confirm-early-log" class="px-4 py-2 text-white rounded-md" style="background-color: var(--danger-color);">تأكيد التسجيل</button></div></div>`;
+            document.getElementById('tomorrow-modal').innerHTML = `<div class="modal-content"><h3 class="text-xl font-bold mb-4">دروس الغد</h3><div id="tomorrow-lessons-list" class="space-y-2"></div><div class="flex justify-end mt-4"><button id="close-tomorrow-modal" class="px-4 py-2 text-white rounded-md" style="background-color: var(--accent-color);">إغلاق</button></div></div>`;
             document.getElementById('close-tomorrow-modal').addEventListener('click', () => document.getElementById('tomorrow-modal').classList.remove('visible'));
         }
 
@@ -486,62 +572,39 @@
             const status = event.target.dataset.status;
             const subject = document.getElementById('lesson-select').value;
             if (!subject) {
-                alert("الرجاء اختيار مادة أولاً.");
+                showConfirmationModal("الرجاء اختيار مادة أولاً.", () => {});
                 return;
             }
 
             const performLog = (reason = '', lessonTime = 'N/A') => {
+                if(reason.trim() === '' && lessonTime === 'N/A'){
+                    reason = 'تسجيل يدوي ليوم بدون حصة مجدولة';
+                }
                 logAttendance(subject, status, reason, lessonTime);
                 document.getElementById('early-log-modal').classList.remove('visible');
                 document.getElementById('early-log-reason').value = '';
             };
 
-            if (status === 'absent') {
-                const modal = document.getElementById('early-log-modal');
-                document.getElementById('early-log-message').textContent = `هل أنت متأكد من تسجيل غياب في مادة ${subject}؟ يمكنك ذكر السبب.`;
-                modal.classList.add('visible');
-                document.getElementById('confirm-early-log').onclick = () => {
-                    const reason = document.getElementById('early-log-reason').value;
-                    performLog(reason);
-                };
-                return;
-            }
-            
-            // Logic for 'attended' status
             const now = new Date();
             const todayDayName = Object.keys(dayMapping).find(key => dayMapping[key] === now.getDay());
             const lessonData = scheduleData.find(l => l.subject === subject);
             const scheduleForToday = lessonData?.schedule.find(s => s.day === todayDayName);
 
+            const modal = document.getElementById('early-log-modal');
+            let message = `هل أنت متأكد من تسجيل ${status === 'attended' ? 'حضور' : 'غياب'} في مادة ${subject}؟`;
+            
             if (!scheduleForToday) {
-                performLog("تسجيل يدوي ليوم بدون حصة مجدولة");
-                return;
+                 message += " أنت تسجل في يوم غير مجدول لهذه الحصة.";
             }
-
-            const lessonTimeStr = scheduleForToday.time;
-            const [hours, minutes] = lessonTimeStr.split(':');
-            const lessonTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-            const startOfDay = new Date(now);
-            startOfDay.setHours(0,0,0,0);
-            const q = query(collection(db, "users", userData.id, "attendance"), where("subject", "==", subject), where("timestamp", ">=", startOfDay));
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-                const modal = document.getElementById('early-log-modal');
-                document.getElementById('early-log-message').textContent = `لقد سجلت حضورك لهذه المادة اليوم بالفعل. هل تريد تسجيلها مرة أخرى؟`;
-                modal.classList.add('visible');
-                document.getElementById('confirm-early-log').onclick = () => performLog('', lessonTimeStr);
-                return;
-            }
-
-            if (now < lessonTime) {
-                const modal = document.getElementById('early-log-modal');
-                document.getElementById('early-log-message').textContent = 'أنت تسجل الحصة قبل موعدها. هل أنت متأكد؟';
-                modal.classList.add('visible');
-                document.getElementById('confirm-early-log').onclick = () => performLog('', lessonTimeStr);
-            } else {
-                performLog('', lessonTimeStr);
-            }
+            
+            document.getElementById('early-log-message').textContent = message;
+            modal.classList.add('visible');
+            
+            document.getElementById('confirm-early-log').onclick = () => {
+                const reason = document.getElementById('early-log-reason').value;
+                const lessonTimeStr = scheduleForToday ? scheduleForToday.time : 'N/A';
+                performLog(reason, lessonTimeStr);
+            };
         }
 
 
@@ -652,7 +715,7 @@
             const statusText = data.status === 'attended' ? 'حضور' : 'غياب';
             const statusColor = data.status === 'attended' ? 'text-green-600' : 'text-red-600';
             const reasonHtml = data.reason ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">السبب: ${data.reason}</p>` : '';
-            return `<div class="flex justify-between items-start p-2 bg-white dark:bg-slate-900 rounded-md border dark:border-slate-700"><div><span class="font-semibold">${data.subject}</span> - <span class="font-bold ${statusColor}">${statusText}</span><span class="text-xs text-slate-500 dark:text-slate-400 block">${timestamp.toLocaleString('ar-EG')}</span>${reasonHtml}</div><button data-id="${data.id}" class="delete-log-btn text-red-400 hover:text-red-600 font-bold text-xl p-1">&times;</button></div>`;
+            return `<div class="flex justify-between items-start p-2 bg-white dark:bg-slate-900 rounded-md border dark:border-slate-700"><div><span class="font-semibold">${data.subject}</span> - <span class="font-bold ${statusColor}">${statusText}</span><span class="text-xs text-slate-500 dark:text-slate-400 block">${timestamp.toLocaleString('ar-EG', { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' })}</span>${reasonHtml}</div><button data-id="${data.id}" class="delete-log-btn text-red-400 hover:text-red-600 font-bold text-xl p-1">&times;</button></div>`;
         }
 
 
@@ -718,13 +781,31 @@
             const ctx = document.getElementById('attendance-chart').getContext('2d');
             if (attendanceChart) attendanceChart.destroy();
             Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#6b7280';
+            
+            // **CHART FIX:** The logic for colors is updated here.
+            const subjectBaseColors = labels.map(l => subjectColors[l]?.base || '#a1a1aa');
+
             attendanceChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'حضور', data: labels.map(l => stats[l].attended), backgroundColor: labels.map(l => subjectColors[l]?.base || '#a1a1aa'), borderColor: '#16a34a', borderWidth: 2, borderRadius: 4 },
-                        { label: 'غياب', data: labels.map(l => stats[l].absent), backgroundColor: labels.map(l => subjectColors[l]?.base || '#a1a1aa'), borderColor: '#dc2626', borderWidth: 2, borderRadius: 4 }
+                        { 
+                            label: 'حضور', 
+                            data: labels.map(l => stats[l].attended), 
+                            backgroundColor: subjectBaseColors,
+                            borderColor: '#22c55e', // Green border for attended
+                            borderWidth: 3, 
+                            borderRadius: 4 
+                        },
+                        { 
+                            label: 'غياب', 
+                            data: labels.map(l => stats[l].absent), 
+                            backgroundColor: subjectBaseColors,
+                            borderColor: '#ef4444', // Red border for absent
+                            borderWidth: 3, 
+                            borderRadius: 4 
+                        }
                     ]
                 },
                 options: {
@@ -743,14 +824,10 @@
         
         function generateCustomChartLegend(labels) {
             const legendContainer = document.getElementById('chart-legend');
-            legendContainer.innerHTML = '';
-            labels.forEach(label => {
-                const color = subjectColors[label]?.base || '#a1a1aa';
-                const legendItem = document.createElement('div');
-                legendItem.className = 'flex items-center gap-2';
-                legendItem.innerHTML = `<span class="w-4 h-4 rounded-full" style="background-color: ${color};"></span><span class="font-semibold text-sm">${label}</span>`;
-                legendContainer.appendChild(legendItem);
-            });
+            legendContainer.innerHTML = `
+                <div class="flex items-center gap-2"><span class="w-4 h-2 rounded" style="border: 2px solid #22c55e;"></span><span class="font-semibold text-sm">إطار أخضر: حضور</span></div>
+                <div class="flex items-center gap-2"><span class="w-4 h-2 rounded" style="border: 2px solid #ef4444;"></span><span class="font-semibold text-sm">إطار أحمر: غياب</span></div>
+            `;
         }
         
         function displayGroupProgress(stats) {
@@ -806,9 +883,9 @@
                 if (hours > 0) parts.push(`<div class="text-center"><span class="text-2xl lg:text-3xl font-bold">${hours}</span><span class="text-xs block">ساعة</span></div>`);
                 if (minutes > 0) parts.push(`<div class="text-center"><span class="text-2xl lg:text-3xl font-bold">${minutes}</span><span class="text-xs block">دقيقة</span></div>`);
                 
-                if (parts.length === 0) return `<div class="text-center mt-2 text-lg font-bold text-blue-700 dark:text-blue-400">يبدأ الآن</div>`;
+                if (parts.length === 0) return `<div class="text-center mt-2 text-lg font-bold" style="color: var(--accent-color);">يبدأ الآن</div>`;
                 
-                return `<div class="mt-2 text-blue-700 dark:text-blue-400 flex items-center justify-center gap-x-4 gap-y-2">${parts.join('<div class="text-2xl font-bold">:</div>')}</div>`;
+                return `<div class="mt-2 flex items-center justify-center gap-x-4 gap-y-2" style="color: var(--accent-color);">${parts.join('<div class="text-2xl font-bold">:</div>')}</div>`;
             }
             
             const prefix = diffMillis < 0 ? "فات منذ" : "يبدأ خلال";
@@ -854,20 +931,25 @@
                 const diffMillis = lesson.date.getTime() - now.getTime();
                 
                 let statusHtml = '';
-                let statusClass = 'bg-white dark:bg-slate-800'; // Default background
+                let statusClass = 'bg-white dark:bg-slate-800 border'; // Default background
                 let timeDetailsHtml = '';
                 const record = attendanceRecords.get(lesson.subject);
 
                 if (record) {
-                    statusHtml = `<p class="font-bold ${record.status === 'attended' ? 'text-green-600' : 'text-red-600'}">${record.status === 'attended' ? 'تم الحضور' : 'غياب'}</p>`;
-                    statusClass += ` border-2 ${record.status === 'attended' ? 'border-green-500' : 'border-red-500'}`;
+                    if (record.status === 'attended') {
+                        statusHtml = `<p class="font-bold text-green-600">تم الحضور</p>`;
+                        statusClass += ` border-2 border-green-500`;
+                    } else {
+                        statusHtml = `<p class="font-bold text-red-600">غياب</p>`;
+                        statusClass += ` border-2 border-red-500`;
+                    }
                 } else if (diffMillis < 0) {
                     statusClass += ' opacity-70';
                     statusHtml = `<p class="text-sm font-semibold text-yellow-600 dark:text-yellow-400">فات ولم يسجل</p>`;
                     timeDetailsHtml = `<p class="text-xs text-center mt-2 font-mono text-red-500">${formatTimeDifference(diffMillis)}</p>`;
                 } else if (!nextLessonFound) {
-                    statusClass += ' ring-2 ring-blue-500';
-                    statusHtml = `<p class="font-bold text-blue-700 dark:text-blue-300">الدرس القادم</p>`;
+                    statusClass = 'ring-2 ring-offset-2 dark:ring-offset-slate-900';
+                    statusHtml = `<p class="font-bold" style="color: var(--accent-color);">الدرس القادم</p>`;
                     timeDetailsHtml = formatTimeDifference(diffMillis, true);
                     nextLessonFound = true;
                 } else {
@@ -875,7 +957,7 @@
                     timeDetailsHtml = `<p class="text-xs text-center mt-2 font-mono text-slate-500">${formatTimeDifference(diffMillis)}</p>`;
                 }
                 
-                return `<div class="p-3 rounded-lg ${statusClass} transition-all duration-300">
+                return `<div class="p-3 rounded-lg ${statusClass} transition-all duration-300" style="border-color: ${nextLessonFound && statusClass.includes('ring-2') ? 'var(--accent-color)' : (record ? (record.status === 'attended' ? '#22c55e' : '#ef4444') : 'var(--border-color)')};">
                             <div class="flex justify-between items-center">
                                 <div>
                                     <h3 class="font-semibold">${lesson.subject}</h3>
@@ -922,14 +1004,14 @@
                 ).join(' و ');
 
                 return `<div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                            <h3 class="font-semibold text-blue-700 dark:text-blue-400">${lesson.subject}</h3>
+                            <h3 class="font-semibold" style="color: var(--accent-color);">${lesson.subject}</h3>
                             <p class="text-sm text-slate-600 dark:text-slate-400">المواعيد: ${scheduleString || 'غير محدد'}</p>
                             <p class="text-xs text-slate-500">المعلم: ${lesson.teacher}</p>
                         </div>`;
             }).join('');
         }
 
-        // --- FINANCIALS ---
+        // --- FINANCIALS (OPTIMIZED) ---
         async function initializeFinancialsPage() {
             document.getElementById('page-financials').addEventListener('click', async (e) => {
                 if (e.target.closest('#toggle-financials-btn')) {
@@ -954,7 +1036,7 @@
                         e.target.textContent = 'تم الحفظ!';
                         setTimeout(() => e.target.textContent = 'حفظ', 2000);
                     } else {
-                        alert('الرجاء إدخال سعر صحيح.');
+                        showConfirmationModal('الرجاء إدخال سعر صحيح.', () => {});
                     }
                 }
                 if (e.target.classList.contains('mark-paid-btn')) {
@@ -984,26 +1066,39 @@
         async function displayFinancials() {
             const container = document.getElementById('financials-list');
             container.innerHTML = '<p>جاري تحميل البيانات المالية...</p>';
-            let html = '';
-            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
-                const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
-                const docSnap = await getDoc(financialDocRef);
-                const price = docSnap.exists() ? docSnap.data().price : 0;
-                
-                html += `
-                    <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border dark:border-slate-700 flex flex-col md:flex-row justify-between items-center gap-3">
-                        <div>
-                            <h3 class="font-semibold text-blue-700 dark:text-blue-400">${lesson.subject}</h3>
-                            <p class="text-sm text-slate-600 dark:text-slate-400">المعلم: ${lesson.teacher}</p>
+            
+            const financialDocsPromises = scheduleData
+                .filter(l => l.schedule && l.schedule.length > 0)
+                .map(l => getDoc(doc(db, "users", userData.id, "financials", l.subject)));
+
+            const financialDocsSnaps = await Promise.all(financialDocsPromises);
+            
+            const prices = new Map();
+            financialDocsSnaps.forEach(docSnap => {
+                if (docSnap.exists()) {
+                    prices.set(docSnap.id, docSnap.data().price);
+                }
+            });
+
+            let html = scheduleData
+                .filter(l => l.schedule && l.schedule.length > 0)
+                .map(lesson => {
+                    const price = prices.get(lesson.subject) || 0;
+                    return `
+                        <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border dark:border-slate-700 flex flex-col md:flex-row justify-between items-center gap-3">
+                            <div>
+                                <h3 class="font-semibold" style="color: var(--accent-color);">${lesson.subject}</h3>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">المعلم: ${lesson.teacher}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="price-input-${lesson.subject.replace(/\s/g, '-')}" value="${price}" class="w-24 p-1 border rounded-md text-center bg-transparent dark:border-slate-600" placeholder="السعر">
+                                <span class="font-semibold text-slate-500">جنيه</span>
+                                <button data-subject="${lesson.subject}" class="save-price-btn bg-green-500 text-white px-3 py-1 rounded-md text-sm">حفظ</button>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <input type="number" id="price-input-${lesson.subject.replace(/\s/g, '-')}" value="${price}" class="w-24 p-1 border rounded-md text-center bg-transparent dark:border-slate-600" placeholder="السعر">
-                            <span class="font-semibold text-slate-500">جنيه</span>
-                            <button data-subject="${lesson.subject}" class="save-price-btn bg-green-500 text-white px-3 py-1 rounded-md text-sm">حفظ</button>
-                        </div>
-                    </div>
-                `;
-            }
+                    `;
+                }).join('');
+            
             container.innerHTML = html;
         }
 
@@ -1026,75 +1121,59 @@
             if (!deletedMonths.has(`${firstOfMonth.getFullYear()}-${firstOfMonth.getMonth()}`)) {
                 monthsToRender.push(firstOfMonth);
             }
-
+            
             const prevMonth = new Date(firstOfMonth);
             prevMonth.setMonth(prevMonth.getMonth() - 1);
-            const prevMonthId = `${prevMonth.getFullYear()}-${prevMonth.getMonth()}`;
-            if (!deletedMonths.has(prevMonthId)) {
-                const isPrevMonthPaid = await areAllPaidForMonth(prevMonth.getFullYear(), prevMonth.getMonth());
-                if (!isPrevMonthPaid) {
-                    monthsToRender.unshift(prevMonth);
-                }
+            if (!deletedMonths.has(`${prevMonth.getFullYear()}-${prevMonth.getMonth()}`)) {
+                monthsToRender.unshift(prevMonth);
             }
+
+            const allPricesSnap = await getDocs(collection(db, "users", userData.id, "financials"));
+            const pricesMap = new Map(allPricesSnap.docs.map(d => [d.id, d.data().price]));
 
             let finalHtml = '';
             for (const monthDate of monthsToRender) {
-                finalHtml += await generateMonthPaymentHTML(monthDate);
+                finalHtml += await generateMonthPaymentHTML(monthDate, pricesMap);
             }
             paymentHistorySection.innerHTML = finalHtml || '<p class="text-center text-slate-500 p-4">لا توجد سجلات مالية لعرضها.</p>';
         }
 
-        async function areAllPaidForMonth(year, month) {
-            const historyRef = collection(db, "users", userData.id, "paymentHistory");
-            const q = query(historyRef, where("year", "==", year), where("month", "==", month));
-            const querySnapshot = await getDocs(q);
-            const paidSubjects = new Set(querySnapshot.docs.map(d => d.data().subject));
-            
-            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
-                const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
-                const docSnap = await getDoc(financialDocRef);
-                const price = docSnap.exists() ? docSnap.data().price : 0;
-                if (price > 0 && !paidSubjects.has(lesson.subject)) {
-                    return false;
-                }
-            }
-            return true;
-        }
 
-        async function generateMonthPaymentHTML(date) {
+        async function generateMonthPaymentHTML(date, pricesMap) {
             const month = date.getMonth();
             const year = date.getFullYear();
             const monthId = `${year}-${month}`;
-            const isFullyPaid = await areAllPaidForMonth(year, month);
+            
+            const historyRef = collection(db, "users", userData.id, "paymentHistory");
+            const q = query(historyRef, where("year", "==", year), where("month", "==", month));
+            const paymentSnapshot = await getDocs(q);
+            const paidRecords = new Map(paymentSnapshot.docs.map(d => [d.data().subject, {id: d.id, ...d.data()}]));
+            
+            const isFullyPaid = scheduleData
+                .filter(l => l.schedule && l.schedule.length > 0 && (pricesMap.get(l.subject) || 0) > 0)
+                .every(l => paidRecords.has(l.subject));
+            
             const isCollapsed = isFullyPaid ? 'collapsed' : '';
 
-            const historyRef = collection(db, "users", userData.id, "paymentHistory");
-            const q = query(historyRef, where("year", "==", year), where("month", "==", month), orderBy("paidDate", "desc"), limit(1));
-            const lastPaymentSnapshot = await getDocs(q);
-            const lastPaymentDate = lastPaymentSnapshot.empty ? '' : `آخر دفعة: ${lastPaymentSnapshot.docs[0].data().paidDate.toDate().toLocaleDateString('ar-EG')}`;
+            let listHtml = scheduleData
+                .filter(l => l.schedule && l.schedule.length > 0)
+                .map(lesson => {
+                    const paidRecord = paidRecords.get(lesson.subject);
+                    const price = pricesMap.get(lesson.subject) || 0;
 
-            let listHtml = '';
-            const paidRecords = new Map( (await getDocs(query(historyRef, where("year", "==", year), where("month", "==", month)))).docs.map(d => [d.data().subject, {id: d.id, ...d.data()}]) );
-            
-            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
-                const paidRecord = paidRecords.get(lesson.subject);
-                const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
-                const docSnap = await getDoc(financialDocRef);
-                const price = docSnap.exists() ? docSnap.data().price : 0;
-
-                if (paidRecord) {
-                     listHtml += `<div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-500/30 flex justify-between items-center"><div><h4 class="font-semibold">${lesson.subject}</h4><p class="text-sm text-green-600 dark:text-green-400 font-bold">تم دفع ${paidRecord.amount} جنيه</p><p class="text-xs text-slate-500 dark:text-slate-400">بتاريخ ${paidRecord.paidDate.toDate().toLocaleDateString('ar-EG')}</p></div><button data-doc-id="${paidRecord.id}" class="cancel-paid-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm">إلغاء</button></div>`;
-                } else {
-                     listHtml += `<div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border dark:border-slate-700 flex justify-between items-center"><div><h4 class="font-semibold">${lesson.subject}</h4><p class="text-sm ${price > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500'} font-bold">${price > 0 ? `مستحق: ${price} جنيه` : 'لم يحدد السعر'}</p></div>${price > 0 ? `<button data-subject="${lesson.subject}" data-teacher="${lesson.teacher}" data-amount="${price}" data-year="${year}" data-month="${month}" class="mark-paid-btn bg-blue-500 text-white px-3 py-1 rounded-md text-sm">تسجيل</button>` : ''}</div>`;
-                }
-            }
+                    if (paidRecord) {
+                        return `<div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-500/30 flex justify-between items-center"><div><h4 class="font-semibold">${lesson.subject}</h4><p class="text-sm text-green-600 dark:text-green-400 font-bold">تم دفع ${paidRecord.amount} جنيه</p><p class="text-xs text-slate-500 dark:text-slate-400">بتاريخ ${paidRecord.paidDate.toDate().toLocaleDateString('ar-EG')}</p></div><button data-doc-id="${paidRecord.id}" class="cancel-paid-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm">إلغاء</button></div>`;
+                    } else {
+                        return `<div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border dark:border-slate-700 flex justify-between items-center"><div><h4 class="font-semibold">${lesson.subject}</h4><p class="text-sm ${price > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500'} font-bold">${price > 0 ? `مستحق: ${price} جنيه` : 'لم يحدد السعر'}</p></div>${price > 0 ? `<button data-subject="${lesson.subject}" data-teacher="${lesson.teacher}" data-amount="${price}" data-year="${year}" data-month="${month}" class="mark-paid-btn text-white px-3 py-1 rounded-md text-sm" style="background-color: var(--accent-color);">تسجيل</button>` : ''}</div>`;
+                    }
+                }).join('');
 
             return `
                 <div class="card p-4 md:p-6 rounded-lg shadow-lg mt-8" id="month-card-${monthId}">
                     <div class="flex justify-between items-center mb-4 border-b-2 dark:border-slate-700 pb-2">
                         <div class="flex-grow cursor-pointer toggle-month-btn" data-month-id="${monthId}">
                             <h2 class="text-xl md:text-2xl font-bold">${date.toLocaleString('ar-EG', { month: 'long' })} ${year}</h2>
-                            ${isFullyPaid ? `<p class="text-xs text-green-500">${lastPaymentDate}</p>` : ''}
+                            ${isFullyPaid ? `<p class="text-xs text-green-500">جميع مصروفات الشهر مدفوعة</p>` : ''}
                         </div>
                         <div class="flex items-center">
                             <button data-year="${year}" data-month="${month}" class="delete-month-btn text-red-400 hover:text-red-600 p-2 rounded-full" title="حذف الشهر">
@@ -1251,10 +1330,11 @@
             const querySnapshot = await getDocs(q);
             const paidSubjects = new Set(querySnapshot.docs.map(d => d.data().subject));
             let unpaidSubjects = [];
-            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
+            for (const lesson of scheduleData.filter(l => l.time)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
                 const price = docSnap.exists() ? docSnap.data().price : 0;
+
                 if (price > 0 && !paidSubjects.has(lesson.subject)) {
                     unpaidSubjects.push(lesson.subject);
                 }
@@ -1309,27 +1389,24 @@
                 timeLeft = workTime;
                 totalTime = workTime;
                 statusDisplay.textContent = 'وقت التركيز';
-                progressCircle.setAttribute('class', 'pomodoro-progress text-red-500');
                 updateDisplay();
             };
             
             const switchMode = (newMode) => {
                 mode = newMode;
                 const modes = {
-                    work: { time: workTime, text: 'وقت التركيز', color: 'text-red-500' },
-                    short: { time: shortBreakTime, text: 'استراحة قصيرة', color: 'text-green-500' },
-                    long: { time: longBreakTime, text: 'استراحة طويلة', color: 'text-blue-500' }
+                    work: { time: workTime, text: 'وقت التركيز' },
+                    short: { time: shortBreakTime, text: 'استراحة قصيرة'},
+                    long: { time: longBreakTime, text: 'استراحة طويلة' }
                 };
                 timeLeft = modes[mode].time;
                 totalTime = modes[mode].time;
                 statusDisplay.textContent = modes[mode].text;
-                progressCircle.setAttribute('class', `pomodoro-progress ${modes[mode].color}`);
                 updateDisplay();
                 startTimer();
             };
 
             const startTimer = () => {
-                Tone.start(); // Ensure audio context is ready on mobile
                 if(isPaused) {
                     sendNotification('مؤقت بومودورو بدأ!', `حان وقت ${statusDisplay.textContent}.`);
                 }
@@ -1341,7 +1418,7 @@
                     updateDisplay();
                     if (timeLeft < 0) {
                         clearInterval(interval);
-                        new Tone.Synth().toDestination().triggerAttackRelease("C5", "0.5");
+                        playSound('reminder');
                         sendNotification('انتهى الوقت!', `انتهى وقت ${statusDisplay.textContent}.`);
                         switchMode(mode === 'work' ? 'short' : 'work');
                     }
@@ -1368,7 +1445,7 @@
                 localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
                 loadSettings();
                 resetTimer();
-                alert('تم حفظ إعدادات بومودورو!');
+                showConfirmationModal('تم حفظ إعدادات بومودورو!', () => {});
             });
             
             loadSettings();
@@ -1415,7 +1492,7 @@
                     taskEl.className = `task-item flex items-center justify-between p-3 rounded-lg transition-colors ${task.completed ? 'bg-green-50 dark:bg-green-900/20 opacity-60' : 'bg-slate-50 dark:bg-slate-800'}`;
                     taskEl.innerHTML = `
                         <div class="flex items-center gap-3 flex-grow">
-                            <input type="checkbox" data-id="${task.id}" class="form-checkbox h-5 w-5 text-yellow-500 rounded bg-transparent flex-shrink-0" ${task.completed ? 'checked' : ''}>
+                            <input type="checkbox" data-id="${task.id}" class="form-checkbox h-5 w-5 rounded flex-shrink-0" style="accent-color: var(--accent-color);" ${task.completed ? 'checked' : ''}>
                             <div class="flex-grow">
                                 <p class="text-slate-800 dark:text-slate-200 ${task.completed ? 'line-through' : ''}">${task.text}</p>
                                 <div class="flex items-center gap-2 text-xs mt-1">
@@ -1447,6 +1524,7 @@
                         dueDate: dueDate,
                         priority: taskPriority.value 
                     });
+                    playSound('task-add');
                     taskInput.value = '';
                     taskDueTime.value = '';
                     renderTasks();
@@ -1460,6 +1538,9 @@
                     renderTasks();
                 }
                 if (target.matches('input[type="checkbox"]')) {
+                    if (target.checked) {
+                        playSound('task-complete');
+                    }
                     await updateDoc(doc(tasksRef, target.dataset.id), { completed: target.checked });
                     renderTasks();
                 }
@@ -1471,14 +1552,26 @@
         }
         
         function initializeSettings() {
-            const toggle = document.getElementById('dark-mode-toggle');
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
+            const combineBtn = document.getElementById('combine-colors-btn');
+            const resetThemeBtn = document.getElementById('reset-theme-btn');
+            const resetAccentBtn = document.getElementById('reset-accent-btn');
 
+            // --- Accent Color ---
+            renderAccentColorSwatches();
+            resetAccentBtn.addEventListener('click', () => {
+                const defaultColor = '#3b82f6';
+                localStorage.removeItem('accentColor');
+                document.documentElement.style.setProperty('--accent-color', defaultColor);
+                renderAccentColorSwatches();
+            });
+            
+            // --- Dark Mode ---
             if (localStorage.getItem('theme') === 'dark') {
-                toggle.checked = true;
+                darkModeToggle.checked = true;
             }
-
-            toggle.addEventListener('change', () => {
-                if (toggle.checked) {
+            darkModeToggle.addEventListener('change', () => {
+                if (darkModeToggle.checked) {
                     document.documentElement.classList.add('dark');
                     localStorage.setItem('theme', 'dark');
                 } else {
@@ -1490,6 +1583,28 @@
                 }
             });
 
+            // --- Theme Swatches (Background) ---
+            renderThemeSwatches();
+            combineBtn.addEventListener('click', () => {
+                isGradientMode = !isGradientMode;
+                const feedback = document.getElementById('gradient-mode-feedback');
+                const btn = document.getElementById('combine-colors-btn');
+                if (isGradientMode) {
+                    feedback.textContent = 'اختر لونين لدمجهما';
+                    btn.style.background = `linear-gradient(to right, #fde047, #f97316)`;
+                    btn.textContent = 'إلغاء الدمج';
+                } else {
+                    resetGradientMode();
+                }
+            });
+            resetThemeBtn.addEventListener('click', () => {
+                localStorage.removeItem('appTheme');
+                applyTheme();
+                renderThemeSwatches();
+            });
+
+
+            // --- Other Settings ---
             document.getElementById('notification-permission-btn').addEventListener('click', requestNotificationPermission);
             document.getElementById('delete-attendance-btn').addEventListener('click', async () => {
                 showConfirmationModal('هل أنت متأكد من حذف جميع بيانات الحضور؟', async () => {
@@ -1502,7 +1617,7 @@
                     if (!document.getElementById('attendance-history-container').classList.contains('hidden')) {
                         await displayAttendanceHistory();
                     }
-                    alert('تم حذف جميع بيانات الحضور بنجاح.');
+                    showConfirmationModal('تم حذف جميع بيانات الحضور بنجاح.', () => {});
                 });
             });
             
@@ -1515,8 +1630,263 @@
             });
         }
 
+        // --- THEME CUSTOMIZATION ---
+        function getThemeSettings(storageKey = 'appTheme') {
+            if (storageKey === 'accentColor') {
+                const savedCustom = localStorage.getItem('customAccentColors');
+                return {
+                    color: localStorage.getItem('accentColor') || '#3b82f6',
+                    customColors: savedCustom ? JSON.parse(savedCustom) : []
+                };
+            }
+            
+            const savedTheme = localStorage.getItem('appTheme');
+            const defaultSolid = document.documentElement.classList.contains('dark') ? '#0f172a' : '#f1f5f9';
+            const defaultTheme = { type: 'solid', color1: defaultSolid, color2: null };
+            
+            if (savedTheme) {
+                return JSON.parse(savedTheme);
+            }
+            
+            return { theme: defaultTheme, customColors: [] };
+        }
+
+        function saveThemeSettings(settings, storageKey = 'appTheme') {
+             if (storageKey === 'accentColor') {
+                localStorage.setItem('accentColor', settings.color);
+                localStorage.setItem('customAccentColors', JSON.stringify(settings.customColors));
+            } else {
+                localStorage.setItem('appTheme', JSON.stringify(settings));
+            }
+        }
+        
+        function renderColorSwatches({
+            containerId,
+            storageKey,
+            onSwatchClick,
+            onAddClick,
+            onDeleteClick,
+            defaultColors,
+            maxCustomColors,
+            selectedColor,
+            gradientColors = []
+        }) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const settings = getThemeSettings(storageKey);
+            const customColors = settings.customColors || [];
+            const allColors = [...defaultColors, ...customColors];
+
+            container.innerHTML = '';
+            allColors.forEach(color => {
+                const isCustom = !defaultColors.includes(color);
+                const wrapper = document.createElement('div');
+                wrapper.className = 'color-swatch-wrapper';
+                
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = color;
+                swatch.dataset.color = color;
+
+                if (selectedColor === color && gradientColors.length === 0) {
+                    swatch.classList.add('selected');
+                }
+                if (gradientColors.includes(color)) {
+                    swatch.classList.add('gradient-selected');
+                }
+
+                swatch.addEventListener('click', () => onSwatchClick(color, swatch));
+                wrapper.appendChild(swatch);
+
+                if (isCustom) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-swatch-btn';
+                    deleteBtn.innerHTML = '&times;';
+                    deleteBtn.title = 'حذف اللون';
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        onDeleteClick(color);
+                    });
+                    wrapper.appendChild(deleteBtn);
+                }
+                container.appendChild(wrapper);
+            });
+
+            if (customColors.length < maxCustomColors) {
+                const addButton = document.createElement('button');
+                addButton.className = 'color-swatch flex items-center justify-center bg-slate-200 dark:bg-slate-700 text-2xl';
+                addButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>';
+                addButton.title = 'إضافة لون جديد';
+                addButton.addEventListener('click', onAddClick);
+                container.appendChild(addButton);
+            }
+        }
+        
+        // Background Theme Functions
+        function renderThemeSwatches() {
+            const themeSettings = getThemeSettings();
+            renderColorSwatches({
+                containerId: 'theme-swatches-container',
+                storageKey: 'appTheme',
+                onSwatchClick: handleThemeSwatchClick,
+                onAddClick: () => openColorPicker('appTheme'),
+                onDeleteClick: deleteCustomThemeColor,
+                defaultColors: ['#f1f5f9', '#0f172a', '#fecaca', '#a7f3d0', '#bfdbfe', '#f5d0fe', '#fef08a'],
+                maxCustomColors: 9,
+                selectedColor: themeSettings.theme.type === 'solid' ? themeSettings.theme.color1 : null,
+                gradientColors: isGradientMode ? gradientSelection : []
+            });
+        }
+        
+        function handleThemeSwatchClick(color, swatchEl) {
+            let themeSettings = getThemeSettings();
+            if (isGradientMode) {
+                swatchEl.classList.toggle('gradient-selected');
+                const index = gradientSelection.indexOf(color);
+                if (index > -1) {
+                    gradientSelection.splice(index, 1);
+                } else if (gradientSelection.length < 2) {
+                    gradientSelection.push(color);
+                }
+                
+                if (gradientSelection.length === 2) {
+                    themeSettings.theme = { type: 'gradient', color1: gradientSelection[0], color2: gradientSelection[1] };
+                    saveThemeSettings(themeSettings);
+                    applyTheme();
+                    resetGradientMode();
+                }
+            } else {
+                themeSettings.theme = { type: 'solid', color1: color, color2: null };
+                saveThemeSettings(themeSettings);
+                applyTheme();
+            }
+            renderThemeSwatches();
+        }
+        
+        function applyTheme() {
+            const themeSettings = getThemeSettings();
+            const { type, color1, color2 } = themeSettings.theme;
+            if (type === 'solid') {
+                document.body.style.background = color1;
+            } else if (type === 'gradient') {
+                document.body.style.background = `linear-gradient(to bottom right, ${color1}, ${color2})`;
+            } else { // Handle reset
+                const defaultSolid = document.documentElement.classList.contains('dark') ? '#0f172a' : '#f1f5f9';
+                document.body.style.background = defaultSolid;
+            }
+        }
+        
+        function deleteCustomThemeColor(color) {
+            showConfirmationModal(`هل أنت متأكد من حذف هذا اللون؟`, () => {
+                let themeSettings = getThemeSettings();
+                themeSettings.customColors = themeSettings.customColors.filter(c => c !== color);
+                saveThemeSettings(themeSettings);
+                renderThemeSwatches();
+            });
+        }
+
+        function resetGradientMode() {
+            isGradientMode = false;
+            gradientSelection = [];
+            const feedback = document.getElementById('gradient-mode-feedback');
+            const btn = document.getElementById('combine-colors-btn');
+            if (feedback) feedback.textContent = '';
+            if (btn) {
+                btn.style.background = '';
+                btn.textContent = 'دمج لونين';
+            }
+            renderThemeSwatches();
+        }
+
+        // Accent Color Functions
+        function renderAccentColorSwatches() {
+            const accentSettings = getThemeSettings('accentColor');
+            renderColorSwatches({
+                containerId: 'accent-color-swatches-container',
+                storageKey: 'accentColor',
+                onSwatchClick: handleAccentSwatchClick,
+                onAddClick: () => openColorPicker('accentColor'),
+                onDeleteClick: deleteCustomAccentColor,
+                defaultColors: ['#3b82f6', '#ef4444', '#10b981', '#eab308', '#8b5cf6', '#ec4899'],
+                maxCustomColors: 9,
+                selectedColor: accentSettings.color
+            });
+        }
+
+        function handleAccentSwatchClick(color) {
+            let accentSettings = getThemeSettings('accentColor');
+            accentSettings.color = color;
+            saveThemeSettings(accentSettings, 'accentColor');
+            applyAccentColor();
+            renderAccentColorSwatches();
+        }
+
+        function applyAccentColor() {
+            const color = localStorage.getItem('accentColor') || '#3b82f6';
+            document.documentElement.style.setProperty('--accent-color', color);
+        }
+
+        function deleteCustomAccentColor(color) {
+            showConfirmationModal(`هل أنت متأكد من حذف هذا اللون؟`, () => {
+                let accentSettings = getThemeSettings('accentColor');
+                accentSettings.customColors = accentSettings.customColors.filter(c => c !== color);
+                saveThemeSettings(accentSettings, 'accentColor');
+                renderAccentColorSwatches();
+            });
+        }
+
+        // **COLOR PICKER FIX:** This function is now more robust.
+        function openColorPicker(storageKey) {
+            let settings = getThemeSettings(storageKey);
+            let customColors = settings.customColors || [];
+            
+            if (customColors.length >= 9) {
+                showConfirmationModal('لقد وصلت إلى الحد الأقصى من الألوان المخصصة (9).', () => {});
+                return;
+            }
+
+            const picker = document.createElement('input');
+            picker.type = 'color';
+            picker.style.position = 'absolute';
+            picker.style.top = '-1000px'; // Move off-screen
+            document.body.appendChild(picker);
+            
+            picker.addEventListener('change', () => {
+                const newColor = picker.value;
+                let currentSettings = getThemeSettings(storageKey);
+                let currentCustomColors = currentSettings.customColors || [];
+
+                if (!currentCustomColors.includes(newColor)) {
+                    currentCustomColors.push(newColor);
+                    currentSettings.customColors = currentCustomColors;
+                    saveThemeSettings(currentSettings, storageKey);
+                    
+                    if (storageKey === 'accentColor') {
+                        renderAccentColorSwatches();
+                    } else {
+                        renderThemeSwatches();
+                    }
+                }
+                document.body.removeChild(picker);
+            }, { once: true });
+
+            // This handler is for when the user cancels the color picker dialog
+            document.body.addEventListener('focus', () => {
+                setTimeout(() => {
+                    if (document.body.contains(picker)) {
+                        document.body.removeChild(picker);
+                    }
+                }, 500);
+            }, { once: true });
+            
+            picker.click();
+        }
+
+
         // --- AI ASSISTANT (CHAT) ---
         function initializeChat() {
+            const chatBox = document.getElementById('chat-box');
             const chatInput = document.getElementById('chat-input');
             const sendButton = document.getElementById('send-button');
             const modeButtons = document.querySelectorAll('.mode-button');
@@ -1538,9 +1908,51 @@
                 });
             });
             
+            chatBox.addEventListener('click', (e) => {
+                const ttsButton = e.target.closest('.tts-button');
+                if (ttsButton) {
+                    const textToSpeak = ttsButton.closest('.chat-bubble-bot').querySelector('p').textContent;
+                    convertTextToSpeech(textToSpeak, ttsButton);
+                }
+            });
+
             setActiveMode('general');
         }
         
+        async function convertTextToSpeech(text, buttonElement) {
+            if (!text) return;
+            buttonElement.classList.add('loading');
+            buttonElement.disabled = true;
+
+            const formData = new FormData();
+            formData.append("msg", text);
+            formData.append("lang", "Zeina");
+            formData.append("source", "ttsmp3");
+
+            try {
+                const response = await fetch("https://ttsmp3.com/makemp3_new.php", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.URL) {
+                    const audio = new Audio(data.URL);
+                    audio.play();
+                    audio.onended = () => {
+                         buttonElement.classList.remove('loading');
+                         buttonElement.disabled = false;
+                    };
+                } else {
+                    throw new Error(data.Error || "Failed to get audio URL");
+                }
+            } catch (error) {
+                console.error("TTS Error:", error);
+                showConfirmationModal("فشل تحويل النص إلى كلام.", () => {});
+                buttonElement.classList.remove('loading');
+                buttonElement.disabled = false;
+            }
+        }
+
         async function loadChatHistory() {
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML = '';
@@ -1570,9 +1982,15 @@
             if (document.getElementById('chat-box').children.length === 0) {
                 showLoadingIndicator();
                 const modeName = document.querySelector(`.mode-button[data-mode="${mode}"]`).textContent;
-                const welcomePrompt = `رحب بـ ${userData.name} ترحيباً ودوداً ومختصراً لأنكم الآن في وضع "${modeName}".`;
+                let welcomePrompt;
+                if(mode === 'summarize') {
+                    welcomePrompt = `أهلاً بك في وضع التلخيص! أنا جاهز لتلخيص أي نص تقدمه لي.`;
+                } else {
+                    welcomePrompt = `رحب بـ ${userData.name} ترحيباً ودوداً ومختصراً لأنكم الآن في وضع "${modeName}".`;
+                }
+                
                 try {
-                    const welcomeResponse = await getGeminiResponse(welcomePrompt, mode, []); 
+                    const welcomeResponse = (mode === 'summarize') ? welcomePrompt : await getGeminiResponse(welcomePrompt, mode, []);
                     removeLoadingIndicator();
                     typeMessage(welcomeResponse, 'bot');
                     await saveMessageToHistory('model', welcomeResponse);
@@ -1681,10 +2099,11 @@
 - **ملخص مالي للشهر الحالي:** ${financialsString}.
 - **أحدث سجلات الحضور والغياب:** ${attendanceString}.
 
-استخدم هذه البيانات بشكل إبداعي في ردودك. مثلاً، إذا سألك عن واجب، تحقق من مهامه. إذا اشتكى من الإرهاق، انظر لجدوله. كن استباقياً وذكياً.`;
+استخدم هذه البيانات بشكل إبداعي في ردودك. مثلاً، إذا سألك عن واجب، تحقق من مهامه. إذا اشتكى من الإرهاق، انظر لجدوله. كن استباقياً وذكياً. يمكنك الآن تحويل ردودك إلى صوت!`;
 
             const prompts = {
                 general: `${basePrompt}\n\n**مهمتك الحالية:** أنت في الوضع "العام". كن صديقه ومساعده الشخصي في كل شيء. ساعده في تنظيم وقته، وذكره بمهامه ودروسه، وقدم له الدعم والتشجيع.`,
+                summarize: `أنت خبير في تلخيص النصوص. عندما يعطيك المستخدم نصاً، قم بتقديم ملخص واضح وموجز له، مع إبراز النقاط الرئيسية.`,
                 arabic: `${basePrompt}\n\n**مهمتك الحالية:** أنت الآن "أستاذ فيصل"، معلم اللغة العربية الخبير. اشرح له أي شيء في منهج اللغة العربية للصف الثالث الإعدادي المصري بأسلوب شيق ومبسط. استخدم معرفتك بجدوله لتذكيره بمواعيد حصص اللغة العربية.`,
                 english: `${basePrompt}\n\n**مهمتك الحالية:** أنت الآن "Mr. Mahdi"، معلم اللغة الإنجليزية الرائع. أجب على أسئلته باللغة العربية مع شرح المصطلحات الإنجليزية الهامة. ساعده في الواجبات والقواعد.`,
                 science: `${basePrompt}\n\n**مهمتك الحالية:** أنت الآن "أستاذ بلال"، معلم العلوم الشغوف. بسّط له مفاهيم منهج العلوم للصف الثالث الإعدادي المصري باستخدام أمثلة من الحياة اليومية.`,
@@ -1717,7 +2136,7 @@
             const snapshot = await getDocs(q);
             const paidSubjects = new Set(snapshot.docs.map(d => d.data().subject));
             let unpaid = [];
-            for (const lesson of scheduleData.filter(l => l.schedule && l.schedule.length > 0)) {
+            for (const lesson of scheduleData.filter(l => l.time)) {
                 const financialDocRef = doc(db, "users", userData.id, "financials", lesson.subject);
                 const docSnap = await getDoc(financialDocRef);
                 const price = docSnap.exists() ? docSnap.data().price : 0;
@@ -1742,15 +2161,25 @@
 
         function addMessageToChat(message, sender) {
             const chatBox = document.getElementById('chat-box');
-            const bubble = document.createElement('div');
-            bubble.className = `w-fit max-w-lg rounded-xl px-4 py-2 mb-2 ${sender === 'user' ? 'chat-bubble-user self-end' : 'chat-bubble-bot self-start'}`;
             const messageContainer = document.createElement('div');
             messageContainer.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
-            messageContainer.appendChild(bubble);
-            bubble.textContent = message;
+            
+            let bubbleContent;
+            if (sender === 'bot' || sender === 'model') {
+                bubbleContent = `
+                    <div class="chat-bubble-bot w-fit max-w-lg rounded-xl px-4 py-2 mb-2 flex items-start gap-2">
+                        <p class="flex-grow">${message}</p>
+                        <button class="tts-button text-slate-500 dark:text-slate-400 flex-shrink-0">🔊</button>
+                    </div>
+                `;
+            } else {
+                bubbleContent = `<div class="chat-bubble-user w-fit max-w-lg rounded-xl px-4 py-2 mb-2">${message}</div>`;
+            }
+            
+            messageContainer.innerHTML = bubbleContent;
             chatBox.appendChild(messageContainer);
             chatBox.scrollTop = chatBox.scrollHeight;
-            return bubble;
+            return messageContainer.querySelector('p');
         }
         
         function typeMessage(message, sender) {
@@ -1759,11 +2188,11 @@
                 message = "عفواً، حدث خطأ ما.";
             }
             const words = message.split(' ');
-            const bubble = addMessageToChat('', sender);
+            const bubblePara = addMessageToChat('', sender);
             let i = 0;
             const interval = setInterval(() => {
-                if (bubble && i < words.length) {
-                    bubble.textContent += (i > 0 ? ' ' : '') + words[i];
+                if (bubblePara && i < words.length) {
+                    bubblePara.textContent += (i > 0 ? ' ' : '') + words[i];
                     document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
                     i++;
                 } else {
@@ -1804,34 +2233,120 @@
 
         function showConfirmationModal(message, onConfirm) {
             const modal = document.getElementById('confirmation-modal');
-            modal.innerHTML = `<div class="modal-content"><p class="text-lg font-semibold mb-4">${message}</p><div class="flex justify-end gap-2"><button id="confirm-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500 rounded-md">إلغاء</button><button id="confirm-ok" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">تأكيد</button></div></div>`;
+            modal.innerHTML = `<div class="modal-content"><p class="text-lg font-semibold mb-4">${message}</p><div class="flex justify-end gap-2"><button id="confirm-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500 rounded-md">إلغاء</button><button id="confirm-ok" class="px-4 py-2 text-white rounded-md" style="background-color: var(--danger-color);">تأكيد</button></div></div>`;
+            
+            const okButton = document.getElementById('confirm-ok');
+            const cancelButton = document.getElementById('confirm-cancel');
+
+            // This makes the modal a simple notification if onConfirm is not a function
+            if (typeof onConfirm !== 'function') {
+                okButton.style.display = 'none';
+                cancelButton.textContent = 'موافق';
+                cancelButton.onclick = () => modal.classList.remove('visible');
+            } else {
+                okButton.onclick = () => {
+                    onConfirm();
+                    modal.classList.remove('visible');
+                };
+                cancelButton.onclick = () => {
+                    modal.classList.remove('visible');
+                };
+            }
             modal.classList.add('visible');
-            document.getElementById('confirm-ok').onclick = () => {
-                onConfirm();
-                modal.classList.remove('visible');
-            };
-            document.getElementById('confirm-cancel').onclick = () => {
-                modal.classList.remove('visible');
-            };
         }
 
-        // --- MUSIC FEATURE ---
+        // --- MUSIC FEATURE (YOUTUBE) ---
         function initializeMusicPage() {
-            const page = document.getElementById('page-music');
-            page.addEventListener('mouseenter', (event) => {
-                const wrapper = event.target.closest('.spotify-player-wrapper');
-                if (wrapper) {
-                    const currentIframe = wrapper.querySelector('.spotify-iframe');
-                    document.querySelectorAll('.spotify-iframe').forEach(iframe => {
-                        if (iframe !== currentIframe && iframe.contentWindow) {
-                            // Reloading the iframe stops the music
-                            iframe.src = iframe.src;
-                        }
-                    });
+            const searchInput = document.getElementById('youtube-search-input');
+            const searchBtn = document.getElementById('youtube-search-btn');
+            const resultsContainer = document.getElementById('youtube-results-container');
+            const playerPlaceholder = document.getElementById('youtube-player-placeholder');
+            const controlsContainer = document.getElementById('youtube-controls');
+            const toggleResultsBtn = document.getElementById('toggle-results-btn');
+
+            const searchAndDisplay = async () => {
+                const query = searchInput.value.trim();
+                if (!query) return;
+
+                resultsContainer.innerHTML = '<p class="text-center p-4 animate-pulse">جاري البحث...</p>';
+
+                try {
+                    const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&maxResults=15&type=video&key=${YOUTUBE_API_KEY}`);
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error.message || 'فشل البحث في يوتيوب');
+                    }
+                    const data = await response.json();
+                    displayYouTubeResults(data.items);
+                } catch (error) {
+                    console.error('YouTube Search Error:', error);
+                    resultsContainer.innerHTML = `<p class="text-center p-4 text-red-500">حدث خطأ أثناء البحث. تأكد من أن مفتاح YouTube API صحيح ويعمل.</p>`;
                 }
-            }, true); // Use capture phase to catch event early
+            };
+
+            const displayYouTubeResults = (items) => {
+                resultsContainer.classList.remove('hidden');
+                toggleResultsBtn.textContent = 'إخفاء قائمة الفيديوهات';
+                if (!items || items.length === 0) {
+                    resultsContainer.innerHTML = '<p class="text-center p-4 text-slate-500">لم يتم العثور على نتائج.</p>';
+                    return;
+                }
+
+                resultsContainer.innerHTML = items.map(item => {
+                    const videoId = item.id.videoId;
+                    const title = item.snippet.title;
+                    const thumbnail = item.snippet.thumbnails.high.url;
+                    
+                    return `
+                        <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer play-youtube-video" data-video-id="${videoId}">
+                            <img src="${thumbnail}" alt="Thumbnail" class="w-24 h-16 object-cover rounded-md">
+                            <p class="flex-grow font-semibold text-sm">${title}</p>
+                        </div>
+                    `;
+                }).join('');
+            };
+            
+            // **YOUTUBE FIX:** This function now handles cases where the player isn't ready.
+            const playVideo = (videoId) => {
+                playerPlaceholder.classList.add('hidden');
+                resultsContainer.classList.add('hidden');
+                controlsContainer.classList.remove('hidden');
+                toggleResultsBtn.textContent = 'إظهار قائمة الفيديوهات';
+
+                if (player && typeof player.loadVideoById === 'function') {
+                    player.loadVideoById(videoId);
+                } else {
+                    // If player is not ready, queue the video ID. 
+                    // The onYouTubeIframeAPIReady function will handle creating the player with this ID.
+                    videoToPlayOnReady = videoId;
+                    // If the YT object exists but player isn't initialized, try to create it again.
+                    // This is a fallback for edge cases.
+                    if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined' && !player) {
+                        window.onYouTubeIframeAPIReady();
+                    }
+                }
+            };
+
+            searchBtn.addEventListener('click', searchAndDisplay);
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchAndDisplay();
+                }
+            });
+
+            resultsContainer.addEventListener('click', (e) => {
+                const videoElement = e.target.closest('.play-youtube-video');
+                if (videoElement) {
+                    const videoId = videoElement.dataset.videoId;
+                    playVideo(videoId);
+                }
+            });
+
+            toggleResultsBtn.addEventListener('click', () => {
+                const isHidden = resultsContainer.classList.toggle('hidden');
+                toggleResultsBtn.textContent = isHidden ? 'إظهار قائمة الفيديوهات' : 'إخفاء قائمة الفيديوهات';
+            });
         }
     </script>
 </body>
 </html>
-
